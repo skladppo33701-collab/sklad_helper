@@ -1,0 +1,18 @@
+{
+  "@@locale": "en",
+  "appTitle": "SkladHelper",
+  "loginTitle": "Sign in",
+  "email": "Email",
+  "password": "Password",
+  "signIn": "Sign in",
+  "signUp": "Create account",
+  "forgotPassword": "Forgot password?",
+  "signInWithGoogle": "Sign in with Google",
+  "waitingActivationTitle": "Waiting for activation",
+  "waitingActivationBody": "Your account was created. Admin must activate access.",
+  "checkAgain": "Check again",
+  "logout": "Log out",
+  "assignments": "Assignments",
+  "tasks": "Tasks",
+  "profile": "Profile"
+}

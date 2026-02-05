@@ -1,0 +1,18 @@
+{
+  "@@locale": "ru",
+  "appTitle": "SkladHelper",
+  "loginTitle": "Вход",
+  "email": "Email",
+  "password": "Пароль",
+  "signIn": "Войти",
+  "signUp": "Создать аккаунт",
+  "forgotPassword": "Забыли пароль?",
+  "signInWithGoogle": "Войти через Google",
+  "waitingActivationTitle": "Ожидает активации",
+  "waitingActivationBody": "Ваш аккаунт создан. Админ должен активировать доступ.",
+  "checkAgain": "Проверить снова",
+  "logout": "Выйти",
+  "assignments": "Назначения",
+  "tasks": "Задачи",
+  "profile": "Профиль"
+}

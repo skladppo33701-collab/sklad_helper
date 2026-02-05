@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../app/router/providers.dart';
+import '../../app/widgets/keyboard_dismiss.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
+
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
@@ -38,6 +40,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final auth = ref.read(firebaseAuthProvider);
     final email = _email.text.trim();
     final pass = _pass.text;
+
     if (email.isEmpty || pass.isEmpty) {
       _snack('Введите email и пароль');
       return;
@@ -55,10 +58,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Future<void> _resetPassword() async {
     final auth = ref.read(firebaseAuthProvider);
     final email = _email.text.trim();
+
     if (email.isEmpty) {
       _snack('Введите email для сброса пароля');
       return;
     }
+
     await _withBusy(() async {
       await auth.sendPasswordResetEmail(email: email);
       _snack('Письмо для сброса пароля отправлено');
@@ -71,7 +76,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     await _withBusy(() async {
       final googleSignIn = GoogleSignIn(scopes: const ['email', 'profile']);
 
-      // Force account picker every time (removes “nothing happens” cases)
+      // Force account picker every time (prevents “nothing happens” cases).
       await googleSignIn.signOut();
 
       final googleUser = await googleSignIn.signIn();
@@ -94,8 +99,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       );
 
       await auth.signInWithCredential(credential);
-
-      // If sign-in succeeded, you should be redirected automatically by the router.
       _snack('Успешный вход через Google');
     });
   }
@@ -109,69 +112,101 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-            return SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'Email'),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _pass,
-                        obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Пароль'),
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _busy ? null : _emailAuth,
-                        child: Text(_isLogin ? 'Войти' : 'Зарегистрироваться'),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => setState(() => _isLogin = !_isLogin),
-                        child: Text(
-                          _isLogin
-                              ? 'Создать аккаунт'
-                              : 'У меня уже есть аккаунт',
+    return KeyboardDismiss(
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(title: const Text('SkladHelper')),
+        body: _buildBody(context),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 8),
+                        Text(
+                          _isLogin ? 'Вход' : 'Регистрация',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
-                      ),
-                      TextButton(
-                        onPressed: _busy ? null : _resetPassword,
-                        child: const Text('Забыли пароль?'),
-                      ),
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: _busy ? null : _googleSignIn,
-                        icon: const Icon(Icons.login),
-                        label: const Text('Войти через Google'),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'После регистрации ваш аккаунт будет в статусе гостя, пока админ не активирует доступ.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                        const SizedBox(height: 24),
+
+                        TextField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(labelText: 'Email'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _pass,
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _busy ? null : _emailAuth(),
+                          decoration: const InputDecoration(
+                            labelText: 'Пароль',
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _busy ? null : _emailAuth,
+                          child: Text(_isLogin ? 'Войти' : 'Создать аккаунт'),
+                        ),
+
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => setState(() => _isLogin = !_isLogin),
+                          child: Text(
+                            _isLogin
+                                ? 'Создать аккаунт'
+                                : 'У меня уже есть аккаунт',
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _busy ? null : _resetPassword,
+                          child: const Text('Забыли пароль?'),
+                        ),
+
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _busy ? null : _googleSignIn,
+                          icon: const Icon(Icons.login),
+                          label: const Text('Войти через Google'),
+                        ),
+
+                        const SizedBox(height: 16),
+                        const Text(
+                          'После регистрации ваш аккаунт будет в статусе гостя, пока админ не активирует доступ.',
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const Spacer(),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

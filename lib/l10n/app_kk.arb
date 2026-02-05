@@ -1,0 +1,18 @@
+{
+  "@@locale": "kk",
+  "appTitle": "SkladHelper",
+  "loginTitle": "Кіру",
+  "email": "Email",
+  "password": "Құпиясөз",
+  "signIn": "Кіру",
+  "signUp": "Тіркелу",
+  "forgotPassword": "Құпиясөзді ұмыттыңыз ба?",
+  "signInWithGoogle": "Google арқылы кіру",
+  "waitingActivationTitle": "Белсендіру күтілуде",
+  "waitingActivationBody": "Аккаунт құрылды. Әкімші қолжетімділікті белсендіруі керек.",
+  "checkAgain": "Қайта тексеру",
+  "logout": "Шығу",
+  "assignments": "Тапсырмалар",
+  "tasks": "Жоспар",
+  "profile": "Профиль"
+}
