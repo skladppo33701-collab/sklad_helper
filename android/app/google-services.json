@@ -7,31 +7,25 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:400881331308:android:40af3a4ab95f92f070fc49",
-        "android_client_info": {
-          "package_name": "com.arystan.ppo33701.sklad_helper"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBscl-cMrEIGQzt19GJ-vhTv88PLfwR-fs"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:400881331308:android:359884a38cb7c85570fc49",
         "android_client_info": {
           "package_name": "com.example.sklad_helper"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "400881331308-fde8jag7tkr16lb39qlvn8nlqnh5pa4f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.sklad_helper",
+            "certificate_hash": "e9e73d57aa269f851fd1830736096195b80b648e"
+          }
+        },
+        {
+          "client_id": "400881331308-h0qlq38137bvnhh7e3kd63r0i0e3h2je.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBscl-cMrEIGQzt19GJ-vhTv88PLfwR-fs"
@@ -39,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "400881331308-h0qlq38137bvnhh7e3kd63r0i0e3h2je.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "400881331308-16kenggnijo1lg1bbgtnh3f70n4i6pqc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.skladHelper"
+              }
+            }
+          ]
         }
       }
     }

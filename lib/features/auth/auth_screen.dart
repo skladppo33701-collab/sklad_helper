@@ -69,9 +69,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final auth = ref.read(firebaseAuthProvider);
 
     await _withBusy(() async {
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return; // cancelled
+      final googleSignIn = GoogleSignIn(scopes: const ['email', 'profile']);
+
+      // Force account picker every time (removes “nothing happens” cases)
+      await googleSignIn.signOut();
+
+      final googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        _snack('Вход через Google отменён или не доступен на устройстве.');
+        return;
+      }
+
       final googleAuth = await googleUser.authentication;
+
+      if (googleAuth.idToken == null) {
+        _snack('Google не вернул idToken. Проверьте настройки Google Sign-In.');
+        return;
+      }
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -79,6 +94,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       );
 
       await auth.signInWithCredential(credential);
+
+      // If sign-in succeeded, you should be redirected automatically by the router.
+      _snack('Успешный вход через Google');
     });
   }
 
@@ -92,58 +110,67 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('SkladHelper')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _pass,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Пароль'),
-                ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _busy ? null : _emailAuth,
-                  child: Text(_isLogin ? 'Войти' : 'Зарегистрироваться'),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() => _isLogin = !_isLogin),
-                  child: Text(
-                    _isLogin ? 'Создать аккаунт' : 'У меня уже есть аккаунт',
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _pass,
+                        obscureText: true,
+                        decoration: const InputDecoration(labelText: 'Пароль'),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _busy ? null : _emailAuth,
+                        child: Text(_isLogin ? 'Войти' : 'Зарегистрироваться'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => setState(() => _isLogin = !_isLogin),
+                        child: Text(
+                          _isLogin
+                              ? 'Создать аккаунт'
+                              : 'У меня уже есть аккаунт',
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _busy ? null : _resetPassword,
+                        child: const Text('Забыли пароль?'),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _busy ? null : _googleSignIn,
+                        icon: const Icon(Icons.login),
+                        label: const Text('Войти через Google'),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'После регистрации ваш аккаунт будет в статусе гостя, пока админ не активирует доступ.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-                TextButton(
-                  onPressed: _busy ? null : _resetPassword,
-                  child: const Text('Забыли пароль?'),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : _googleSignIn,
-                  icon: const Icon(Icons.login),
-                  label: const Text('Войти через Google'),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'После регистрации ваш аккаунт будет в статусе гостя, пока админ не активирует доступ.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
