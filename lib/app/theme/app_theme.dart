@@ -14,7 +14,7 @@ class AppTheme {
     return base.copyWith(
       textTheme: AppTypography.textTheme(base.textTheme),
 
-      scaffoldBackgroundColor: base.colorScheme.surface,
+      scaffoldBackgroundColor: AppTokens.bgDark,
 
       appBarTheme: AppBarTheme(
         elevation: 0,
@@ -86,17 +86,41 @@ class AppTheme {
   static ThemeData dark() {
     final base = ThemeData(
       useMaterial3: true,
-      colorScheme: AppColorSchemes.dark,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppTokens.accentGreen,
+        brightness: Brightness.dark,
+      ),
     );
 
     return base.copyWith(
+      scaffoldBackgroundColor: AppTokens.bgDark,
       textTheme: AppTypography.textTheme(base.textTheme),
+
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: false,
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppTokens.textOnDark,
         surfaceTintColor: Colors.transparent,
-        backgroundColor: base.colorScheme.surface,
-        foregroundColor: base.colorScheme.onSurface,
+      ),
+
+      dividerTheme: DividerThemeData(
+        color: Colors.white.withValues(alpha: 0.06),
+        thickness: 1,
+        space: 1,
+      ),
+
+      navigationBarTheme: NavigationBarThemeData(
+        height: 76,
+        backgroundColor: AppTokens.surfaceDark.withValues(alpha: 0.92),
+        indicatorColor: AppTokens.accentGreen.withValues(alpha: 0.14),
+        labelTextStyle: WidgetStatePropertyAll(
+          base.textTheme.labelSmall?.copyWith(
+            color: AppTokens.textMutedOnDark,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

@@ -3,19 +3,25 @@ import 'package:flutter/material.dart';
 /// Single source of truth tokens.
 /// Change tokens here -> app UI updates everywhere.
 class AppTokens {
-  // Brand
-  static const Color seed = Color(0xFF006A6A); // change later if you want
-  // Accent (neon lime)
-  static const Color accent = Color(0xFFB7FF2A);
+  AppTokens._();
 
-  // Dark palette
-  static const Color bgDark = Color(0xFF0B0E0F);
-  static const Color surfaceDark = Color(0xFF121718);
+  // Brand
+  static const Color seed = Color(0xFF006A6A); // fallback seed
+
+  // Accent palette
+  // For your new design, prefer [accentGreen]. You can remove [accentLime] later.
+  static const Color accentLime = Color(0xFFB7FF2A);
+  static const Color accentGreen = Color(0xFF59FF92);
+
+  // Dark palette (target UI)
+  static const Color bgDark = Color(0xFF0C0F10);
+  static const Color surfaceDark = Color(0xFF141A1C);
   static const Color surfaceDark2 = Color(0xFF171E1F);
   static const Color outlineDark = Color(0xFF232B2C);
 
   static const Color textOnDark = Color(0xFFEAF0F0);
   static const Color textMutedOnDark = Color(0xFF98A2A3);
+
   // Spacing (8pt grid with a few extras)
   static const double s2 = 2;
   static const double s4 = 4;
@@ -52,4 +58,14 @@ class AppTokens {
   static const double appBarHeight = 56;
   static const double buttonHeight = 48;
   static const double fieldHeight = 52;
+
+  // Gradient overlay (hero/schedule header)
+  static const Gradient heroGradient = LinearGradient(
+    colors: [Color(0xFF1C4F2E), Colors.transparent],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Optional: glow used for FAB / active elements in dark theme.
+  static const Color glow = Color(0x803BFF7A); // 50% alpha
 }

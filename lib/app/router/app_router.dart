@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
+import '../../features/home/schedule_demo_screen.dart';
 
 import 'providers.dart';
 import '../../features/auth/auth_screen.dart';
@@ -29,20 +30,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // if logged in, check activation
-      final profileAsync = ref.read(userProfileProvider);
-      final profile = profileAsync.asData?.value;
+
       final isWaiting = state.matchedLocation == '/waiting';
 
-      // profile may still be loading; allow navigation but steer away from /home until ready
-      if (profileAsync.isLoading || profile == null) {
-        return isWaiting ? null : '/waiting';
-      }
-
-      if (!profile.isActive) {
-        return isWaiting ? null : '/waiting';
-      }
-
-      // Active user
+      // DEMO MODE (temporary): as soon as user is logged in, allow /home
+      // This is ONLY for previewing the UI. We will revert after UI is approved.
       if (isLoggingIn || isWaiting) return '/home';
       return null;
     },
@@ -52,7 +44,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/waiting',
         builder: (context, state) => const WaitingActivationScreen(),
       ),
-      GoRoute(path: '/home', builder: (context, state) => const HomeShell()),
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const ScheduleDemoScreen(),
+      ),
     ],
   );
 });
