@@ -17,27 +17,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
 
     redirect: (context, state) {
-      final auth = ref.read(authStateProvider);
+      final isAuth = state.matchedLocation.startsWith('/auth');
 
-      final isLoggingIn = state.matchedLocation.startsWith('/auth');
-
-      // auth loading
-      if (auth.isLoading) return isLoggingIn ? null : '/auth';
-
-      final user = auth.asData?.value;
+      // DEMO MODE: if user is logged in -> always go to /home (ignore activation/profile)
+      final user = ref.read(firebaseAuthProvider).currentUser;
       if (user == null) {
-        return isLoggingIn ? null : '/auth';
+        return isAuth ? null : '/auth';
       }
 
-      // if logged in, check activation
+      if (isAuth || state.matchedLocation == '/waiting') {
+        return '/home';
+      }
 
-      final isWaiting = state.matchedLocation == '/waiting';
-
-      // DEMO MODE (temporary): as soon as user is logged in, allow /home
-      // This is ONLY for previewing the UI. We will revert after UI is approved.
-      if (isLoggingIn || isWaiting) return '/home';
       return null;
     },
+
     routes: [
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(
