@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
-import '../../features/home/schedule_demo_screen.dart';
+import '../../features/home/schedule_planner_demo_screen.dart';
 
 import 'providers.dart';
 import '../../features/auth/auth_screen.dart';
 import '../../features/auth/waiting_activation_screen.dart';
-import '../../features/home/home_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -40,7 +39,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/home',
-        builder: (context, state) => const ScheduleDemoScreen(),
+        builder: (context, state) => const SchedulePlannerDemoScreen(),
       ),
     ],
   );

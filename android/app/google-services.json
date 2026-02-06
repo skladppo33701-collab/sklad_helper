@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "400881331308-fde8jag7tkr16lb39qlvn8nlqnh5pa4f.apps.googleusercontent.com",
+          "client_id": "400881331308-qtn9ucdfu61grqii359te48iic20e23e.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.sklad_helper",
-            "certificate_hash": "e9e73d57aa269f851fd1830736096195b80b648e"
+            "certificate_hash": "cc4479870279216d36737070d77cdc1c3d8c381d"
           }
         },
         {
