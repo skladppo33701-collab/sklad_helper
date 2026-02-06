@@ -1,0 +1,7 @@
+scan_success
+scan_error
+lock_acquired
+lock_released
+checking_started
+checking_skipped
+transfer_completed

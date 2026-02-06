@@ -9,12 +9,19 @@ class AppTokens {
   static const Color seed = Color(0xFF006A6A); // fallback seed
 
   // Accent palette
-  // For your new design, prefer [accentGreen]. You can remove [accentLime] later.
   static const Color accentLime = Color(0xFFB7FF2A);
-  static const Color accentGreen = Color(0xFF59FF92);
+  static const Color accentGreen = Color(
+    0xFFD4E157,
+  ); // Updated to 2026 Acid Green
+  static const Color accentRed = Color(0xFFFF453A);
+  static const Color accentCyan = Color(0xFF64D2FF);
+  static const Color accentAmber = Color(0xFFFFD60A);
 
   // Dark palette (target UI)
   static const Color bgDark = Color(0xFF0C0F10);
+  static const Color bgOled = Color(
+    0xFF050505,
+  ); // Deepest Black for 2026 Planner
   static const Color surfaceDark = Color(0xFF141A1C);
   static const Color surfaceDark2 = Color(0xFF171E1F);
   static const Color outlineDark = Color(0xFF232B2C);
@@ -25,7 +32,9 @@ class AppTokens {
   // Spacing (8pt grid with a few extras)
   static const double s2 = 2;
   static const double s4 = 4;
+  static const double s6 = 6;
   static const double s8 = 8;
+  static const double s10 = 10;
   static const double s12 = 12;
   static const double s16 = 16;
   static const double s20 = 20;
@@ -39,12 +48,15 @@ class AppTokens {
   static const double r16 = 16;
   static const double r20 = 20;
   static const double r24 = 24;
+  static const double r32 = 32;
+  static const double r36 = 36;
 
   // Icon sizes
   static const double icon16 = 16;
   static const double icon20 = 20;
   static const double icon24 = 24;
   static const double icon28 = 28;
+  static const double icon32 = 32;
 
   // Motion
   static const Duration durFast = Duration(milliseconds: 150);
