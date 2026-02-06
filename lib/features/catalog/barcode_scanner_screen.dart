@@ -20,7 +20,6 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.close),
-            tooltip: 'Close', // TODO(l10n)
           ),
         ],
       ),
