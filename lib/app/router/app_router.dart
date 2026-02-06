@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
-import '../../features/home/schedule_planner_demo_screen.dart';
+import '../../features/catalog/catalog_screen.dart';
+import '../../features/catalog/product_detail_screen.dart';
 
 import 'providers.dart';
 import '../../features/auth/auth_screen.dart';
@@ -40,6 +41,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         builder: (context, state) => const SizedBox.shrink(),
+      ),
+      GoRoute(
+        path: '/catalog',
+        builder: (context, state) => const CatalogScreen(),
+      ),
+      GoRoute(
+        path: '/product/:article',
+        builder: (context, state) {
+          final article = state.pathParameters['article']!;
+          return ProductDetailScreen(article: article);
+        },
       ),
     ],
   );
