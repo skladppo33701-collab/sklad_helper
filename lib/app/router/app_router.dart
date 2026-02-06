@@ -37,7 +37,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/waiting',
         builder: (context, state) => const WaitingActivationScreen(),
       ),
-      GoRoute(path: '/home', builder: (context, state) => const ()),
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const SizedBox.shrink(),
+      ),
     ],
   );
 });
