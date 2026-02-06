@@ -41,5 +41,17 @@ app.*.map.json
 
 # Android Studio will place build artifacts here
 /android/app/debug
-/android/app/profile
-/android/app/release
+*** Update File: .gitignore
+@@
+ /android/app/profile
+ /android/app/release
+
+-+# Ignore zip archives
+-+*.zip
+-+lib.zip
+-
+ # Ignore zip archives
+ *.zip
+ lib.zip
+
+
