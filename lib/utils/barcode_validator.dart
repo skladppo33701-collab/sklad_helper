@@ -12,18 +12,22 @@ class BarcodeValidator {
   static BarcodeValidationResult validate(String raw) {
     final code = raw.trim();
 
-    if (code.isEmpty)
-      return const BarcodeValidationResult.fail('Пустой штрихкод');
+    if (code.isEmpty) {
+      return const BarcodeValidationResult.fail(
+        'Пустой штрихкод',
+      ); // TODO(l10n)
+    }
+
     if (!_isNumeric(code)) {
       return const BarcodeValidationResult.fail(
-        'Разрешены только цифры (EAN-8 / EAN-13)',
+        'Разрешены только цифры (EAN-8 / EAN-13)', // TODO(l10n)
       );
     }
 
     if (code.length == 13) {
       if (!_isValidEan13(code)) {
         return const BarcodeValidationResult.fail(
-          'Неверная контрольная сумма EAN-13',
+          'Неверная контрольная сумма EAN-13', // TODO(l10n)
         );
       }
       return const BarcodeValidationResult.ok();
@@ -35,7 +39,7 @@ class BarcodeValidator {
     }
 
     return const BarcodeValidationResult.fail(
-      'Разрешены только EAN-8 (8 цифр) или EAN-13 (13 цифр)',
+      'Разрешены только EAN-8 (8 цифр) или EAN-13 (13 цифр)', // TODO(l10n)
     );
   }
 

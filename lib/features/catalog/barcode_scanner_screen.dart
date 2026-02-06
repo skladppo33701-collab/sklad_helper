@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -38,11 +37,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
           _handled = true;
 
-          // Prevent rare double-pop / pop-after-dispose.
-          Future.microtask(() {
-            if (!mounted) return;
-            Navigator.of(context).pop(raw);
-          });
+          if (!mounted) return;
+          Navigator.of(context).pop(raw);
         },
       ),
     );

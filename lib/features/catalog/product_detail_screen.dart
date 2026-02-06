@@ -19,9 +19,8 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   bool _binding = false;
 
-  Future<void> _bind(BuildContext context) async {
+  Future<void> _bind() async {
     if (_binding) return;
-
     final uid = ref.read(firebaseAuthProvider).currentUser?.uid;
     if (uid == null) return;
 
@@ -30,9 +29,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       final scanned = await Navigator.of(context).push<String>(
         MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
       );
-
       if (!mounted) return;
-
       if (scanned == null) return;
 
       final validation = BarcodeValidator.validate(scanned);
@@ -50,29 +47,32 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             barcode: scanned,
             createdByUid: uid,
           );
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Barcode bound')), // TODO(l10n)
       );
     } on BarcodeConflictException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } on ProductAlreadyBoundException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')), // TODO(l10n)
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')), // TODO(l10n)
+        );
+      }
     } finally {
-      if (!mounted) return;
-      setState(() => _binding = false);
+      if (mounted) {
+        setState(() => _binding = false);
+      }
     }
   }
 
@@ -112,7 +112,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 const Spacer(),
                 if (canBind)
                   FilledButton.icon(
-                    onPressed: _binding ? null : () => _bind(context),
+                    onPressed: _binding ? null : _bind,
                     icon: _binding
                         ? const SizedBox(
                             width: 18,
