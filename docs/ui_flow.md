@@ -1,8 +1,15 @@
-# UI Flow & Navigation (Mobile + Web)
+# UI Flow & Navigation (Mobile + Web) — Updated after UX Research
+
+Research-driven principles:
+- **Scan-first**: минимизируем клики, система ведёт пользователя потоком.
+- **Minimum Viable Context**: на экране только то, что нужно для микродействия.
+- **Thumb zone**: основные кнопки снизу (удобно для “gun-grip”/телефона).
+- **Strong feedback**: haptics + sound + big banner success/error.
+- **Exception handling**: ошибки обрабатываются отдельными понятными сценариями.
 
 ## Mobile app main nav (bottom tabs)
 1) Transfers
-2) Catalog (role-gated: loader has search; admin/storekeeper has edit)
+2) Catalog
 3) Notifications (in-app)
 4) Profile/Settings
 
@@ -14,111 +21,95 @@ Optional later:
 
 ## Mobile: Transfers
 
-### Transfers List Screen
-- Tabs/filters: New, Picking, Picked, Done
-- Search by transfer number/title
-- Card displays:
-  - title (Transfer #, date)
+### Transfers List
+- Filters by status + search (number/title)
+- Card shows:
+  - title + date
   - status chip
-  - progress (done/total)
-  - active workers (avatars)
+  - progress: doneLines/totalLines (from transfer.stats)
+  - active workers (derived from locks on details only; optional in list)
   - last updated
 
-Actions:
-- Tap card -> Transfer Details
+Reads policy:
+- query uses limit(20/50)
+- single realtime listener
 
-### Transfer Details Screen
-Sections:
-- Header: metadata (sender/receiver/created by/published at)
-- Progress summary
-- Category list with expandable groups
-- Line items list
+### Transfer Details (Scan-first picking)
+Layout:
+- Header metadata (minimal)
+- Progress + “Ready/Locked/Done” legend
+- Category accordion groups
+- Lines list
 
-Line item row:
-- name
-- article (optional)
-- qty progress (e.g. 1/3)
-- status (open/locked/done)
-- lock owner avatar if locked
-- button: "Prepare" (if available) / disabled if locked by others / "Continue" if locked by self
+Line row (Minimum context):
+- name (1–2 lines)
+- qty progress (e.g., 1/3) large
+- state: open/locked/done
+- action:
+  - "Prepare" / disabled if locked by others / "Continue" if locked by self
 
-Actions:
-- Prepare -> Scan Screen
-- Storekeeper: "Start Checking" (when picked)
-- Storekeeper: "Finish Unverified" (when picked)
-- Storekeeper: "Finish Verified" (when checking complete)
+### Prepare → Scan flow
+- Tap “Prepare” locks the line and immediately opens Scan screen.
+- Cancel preparation available (rare).
 
 ### Scan Screen (Picking)
-- Fullscreen camera scan
-- Big status banner (Success/Error)
-- Current line info
-- Buttons:
-  - Cancel preparation (release lock)
-  - Torch (optional)
-  - Manual barcode entry (optional)
-- Shows last 3 scan results
+- Fullscreen camera
+- Big status banner at top (success/error)
+- Current target line (name + remaining qty)
+- Bottom actions (thumb zone):
+  - Cancel (release lock)
+  - Torch
+  - Manual entry (optional, admin-only toggle)
 
-### Scan Screen (Checking)
-Similar, but distinct mode label "Checking".
+Auto-advance:
+- If scan success and qtyPicked hits qtyPlanned → auto close scanner and return to details.
 
-### Transfer Audit Screen (optional in MVP)
-- Events timeline
+### Checking
+- Storekeeper sees "Start checking" and "Finish unverified"
+- Verified flow can reuse scan screen in “checking mode”
 
 ---
 
-## Mobile: Catalog
-
-### Catalog Search Screen
-- search field
-- results list with key fields
+## Mobile: Catalog (Admin/Storekeeper heavy)
+### Catalog Search
+- search by article (primary) + name prefix (optional)
+- result row: article + name + category + barcode presence badge
 - tap -> Product Detail
 
-### Product Detail Screen
-- article, name, category, barcode
-- Admin/Storekeeper: edit fields
-- Admin/Storekeeper: bind barcode button
-
-### Bind Barcode Screen
-- camera scan
-- validate EAN
-- confirm save
-- show conflicts if barcode already exists
+### Product Detail
+- view fields
+- bind barcode (scan) action
+- admin edit fields
 
 ---
 
-## Mobile: Notifications
-- list of in-app notifications
-- tap -> opens related transfer/product
+## Mobile: Notifications (in-app, MVP)
+- Derived from transfer changes (publish/picked/done) OR stored as docs later
+- No push required for MVP
 
 ---
 
-## Mobile: Profile/Settings
-- profile photo
-- language selection
-- theme
+## Mobile: Settings
+- language ru/kk/en
+- theme (dark mode strongly recommended)
 - sound/vibration toggles
-- push notification permission status
+- camera permissions / notifications permission status
 
 ---
 
-## Web Admin Panel
-
-### Login Screen
-- email+password
-
+## Web Admin Panel (Upload Focus Mode)
 ### Dashboard
-- Upload Transfer (drag&drop)
+- Upload transfer (drag&drop)
 - Recent uploads list
 - Published transfers list
 
-### Upload Preview Screen
-- parsed metadata
-- line table preview
-- validation errors
-- actions:
-  - Publish
-  - Cancel / re-upload
+### Upload Flow (Focus Mode)
+1) Upload
+2) Parse Preview
+3) Validate (error table)
+4) Publish
 
-### Catalog (optional in MVP web)
-- search products
-- bind barcode
+Focus Mode behavior:
+- hide global nav/sidebar
+- show linear stepper + clear “Exit”
+- preview with column headers and row-level errors

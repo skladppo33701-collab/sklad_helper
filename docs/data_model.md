@@ -1,4 +1,4 @@
-# Firestore Data Model (MVP-1)
+# Firestore Data Model (MVP-1) — Updated after Research
 
 ## Collections
 
@@ -14,10 +14,7 @@ Fields:
   - soundEnabled: bool
   - vibrationEnabled: bool
   - themeMode: "system" | "light" | "dark"
-- fcmTokens: array<string> (or subcollection for scalability)
-
-Indexes:
-- role (optional for admin views)
+- fcmTokens: array<string> (optional; MVP may skip push)
 
 ---
 
@@ -28,13 +25,12 @@ Fields:
 - name: string
 - category: string (e.g., "Refrigerators", "Washing Machines")
 - brand: string? (optional)
-- barcode: string? (single "customer barcode")
-- updatedAt
-- createdAt
+- barcode: string? (single “customer barcode”)
+- createdAt, updatedAt
 
-Constraints:
-- barcode is optional initially; later becomes set.
-- barcode must be unique (enforced via barcode_index).
+Notes:
+- barcode optional initially (bind later).
+- barcode uniqueness is enforced via barcode_index.
 
 ---
 
@@ -47,17 +43,17 @@ Fields:
 - createdBy: uid
 
 Constraints:
-- 1:1 mapping barcode -> article.
-- Prevent duplicates: docId uniqueness.
+- 1:1 mapping barcode -> article
+- O(1) lookup on scan (critical for speed and low reads)
 
 ---
 
 ### transfers/{transferId}
 Fields:
 - status: new|picking|picked|checking|done_verified|done_unverified
-- number: string (e.g. "52")
+- number: string
 - date: timestamp
-- title: string (e.g. "Transfer #52 — 2026-01-22")
+- title: string
 - sender: string
 - receiver: string
 - createdBy: uid
@@ -68,18 +64,23 @@ Fields:
 - completedAt
 - completedBy: uid
 - completedMode: "verified"|"unverified"|null
-- flags:
-  - needsCatalogAttention: bool (e.g., missing products in catalog)
-  - hasConflicts: bool
-- stats (optional cache):
-  - totalLines
-  - doneLines
-  - totalUnitsPlanned
-  - totalUnitsPicked
 
-Indexes:
-- status + publishedAt
-- date + number (optional)
+flags:
+- needsCatalogAttention: bool
+- hasConflicts: bool
+
+stats (cache for cheap lists):
+- totalLines: int
+- doneLines: int
+- totalUnitsPlanned: int
+- totalUnitsPicked: int
+- updatedAt: timestamp
+
+Cost rule:
+- stats обновляем **только при редких событиях**:
+  - totalLines/totalUnitsPlanned при publish
+  - doneLines при переходе line -> done
+  - totalUnitsPicked при инкременте qtyPicked (опционально; можно считать на клиенте в details)
 
 ---
 
@@ -88,34 +89,29 @@ Fields:
 - lineNo: int
 - article: string
 - nameFromDoc: string
-- category: string (from catalog if exists else "Uncategorized")
+- category: string (from catalog else "Uncategorized")
 - qtyPlanned: int
 - qtyPicked: int
 - status: open|locked|done
 - lock: object|null
-  - userId: uid
-  - lockedAt: timestamp
-  - expiresAt: timestamp
+  - userId
+  - lockedAt
+  - expiresAt
 
-Indexes:
-- article (optional)
-- status (optional)
+Picking attribution (instead of scan_success events):
+- pickedBy: map<uid, int>       // increments with qtyPicked
+- lastPickedAt: timestamp       // updated on successful increment
+
+Notes:
+- pickedBy/lastPickedAt give “who picked what” without event spam.
 
 ---
 
 ### transfers/{transferId}/events/{eventId}
-Fields:
-- type: string (see docs/events.md)
-- userId: uid
-- timestamp
-- payload: map (flexible)
-Examples payload:
-- barcode
-- article
-- lineId
-- qtyBefore, qtyAfter
-- errorCode
-- deviceInfo (optional)
-
-Retention:
-- configurable (30/90/180 days) via scheduled cleanup (
+Append-only, “cold data”.
+Used for:
+- lock actions
+- scan errors
+- lifecycle transitions
+- sync conflicts
+Read with pagination only.
