@@ -3,6 +3,13 @@ docs/spec.md
 docs/state_architecture.md
 docs/data_model.md
 
+## Architecture Docs
+
+docs/spec.md
+docs/state_architecture.md
+docs/data_model.md
+docs/projection_architecture.md
+
 # sklad_helper
 
 A new Flutter project.
