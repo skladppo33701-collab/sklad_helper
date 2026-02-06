@@ -37,10 +37,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/waiting',
         builder: (context, state) => const WaitingActivationScreen(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const SchedulePlannerDemoScreen(),
-      ),
+      GoRoute(path: '/home', builder: (context, state) => const ()),
     ],
   );
 });
