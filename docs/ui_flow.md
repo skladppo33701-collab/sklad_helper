@@ -22,21 +22,17 @@ Optional later:
 ## Mobile: Transfers
 
 ### Transfers List
-- Filters by status + search (number/title)
-- Card shows:
-  - title + date
-  - status chip
-  - progress: doneLines/totalLines (from transfer.stats)
-  - active workers (derived from locks on details only; optional in list)
-  - last updated
+Transfers List (MVP):
+- Show status only (New/In progress/Picked/Done)
+- No numeric progress bar on list
+- Exact progress computed in Transfer Details (lines streamed only there)
 
 Reads policy (Free Tier):
 - Transfers list streams only `transfers` (limit 20/50).
-- It uses projection fields: `transfer.stats` + `transfer.flags`.
+- It uses lightweight fields only: `status` + minimal metadata + `flags` (badges).
 - It does NOT stream/read `lines` for each card.
 - Lines are streamed ONLY inside Transfer Details while that screen is open.
 - Events are loaded on demand with pagination (no realtime).
-
 
 ### Transfer Details (Scan-first picking)
 Layout:

@@ -44,6 +44,11 @@ Never streamed in realtime for loaders.
 
 ## 2) What Projections We Keep (Minimal Set)
 
+## MVP decision
+Transfers list shows status only ("New/In progress/Picked/Done").
+Exact progress is computed only inside Transfer Details by reading lines.
+No stats projection updates in MVP to keep rules and writes minimal.
+
 ### 2.1 transfers.stats (list-grade metrics)
 Required fields:
 - totalLines: int                // set on publish
