@@ -1,21 +1,21 @@
-# Notifications Plan (Push + In-App)
+# Notifications Plan — Free Tier First
 
-## Push events (FCM)
-1) Transfer published -> notify all loaders
-2) Transfer picked (100%) -> notify storekeeper
-3) Transfer completed unverified -> notify admin (quality control)
-Optional:
-- conflicts detected -> notify storekeeper/admin
+Goal: keep team informed without requiring Cloud Functions or billing.
 
-## In-app notifications
-Stored in Firestore (optional) or derived from events:
-- publish
-- picked
-- check started
-- completed verified/unverified
-- conflicts
+## MVP (no auto-push)
+### In-app notifications
+Generated from Firestore state (cheap):
+- New transfer published → appears on Transfers list with status `new`
+- Picked (100%) → storekeeper sees badge on transfer card
+- Done_unverified → admin/storekeeper sees warning badge
 
-## User settings
-- sound/vibration toggles
-- push enabled toggle (app-side)
-- language affects notification text (push may use server-side templates)
+UI behaviors:
+- snack/toast on important changes (only while app open)
+- unread badge count (derived, optional)
+
+## Later (optional)
+Push via FCM + Cloud Functions:
+- Transfer published → loaders
+- Transfer picked → storekeeper
+- Done_unverified → admin
+Only add after system stabilizes and you accept billing risk.

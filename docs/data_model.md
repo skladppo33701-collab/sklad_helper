@@ -48,39 +48,22 @@ Constraints:
 
 ---
 
-### transfers/{transferId}
-Fields:
-- status: new|picking|picked|checking|done_verified|done_unverified
-- number: string
-- date: timestamp
-- title: string
-- sender: string
-- receiver: string
-- createdBy: uid
-- publishedBy: uid
-- createdAt, publishedAt
-- pickedAt
-- checkingStartedAt
-- completedAt
-- completedBy: uid
-- completedMode: "verified"|"unverified"|null
-
-flags:
-- needsCatalogAttention: bool
-- hasConflicts: bool
-
-stats (cache for cheap lists):
+stats (projection cache for cheap lists):
 - totalLines: int
 - doneLines: int
 - totalUnitsPlanned: int
-- totalUnitsPicked: int
-- updatedAt: timestamp
+- lastActivityAt: timestamp
 
-Cost rule:
-- stats обновляем **только при редких событиях**:
-  - totalLines/totalUnitsPlanned при publish
-  - doneLines при переходе line -> done
-  - totalUnitsPicked при инкременте qtyPicked (опционально; можно считать на клиенте в details)
+Optional (omit in MVP for cost control):
+- totalUnitsPicked: int
+- activeWorkersCount: int
+
+Update policy (Free Tier):
+- totalLines/totalUnitsPlanned set on publish (one-time).
+- doneLines increments ONLY when a line transitions to done (one-time per line).
+- lastActivityAt updates only on meaningful milestones (line done, checking started, completed).
+- Avoid updating stats on every scan.
+
 
 ---
 

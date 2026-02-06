@@ -30,9 +30,13 @@ Optional later:
   - active workers (derived from locks on details only; optional in list)
   - last updated
 
-Reads policy:
-- query uses limit(20/50)
-- single realtime listener
+Reads policy (Free Tier):
+- Transfers list streams only `transfers` (limit 20/50).
+- It uses projection fields: `transfer.stats` + `transfer.flags`.
+- It does NOT stream/read `lines` for each card.
+- Lines are streamed ONLY inside Transfer Details while that screen is open.
+- Events are loaded on demand with pagination (no realtime).
+
 
 ### Transfer Details (Scan-first picking)
 Layout:

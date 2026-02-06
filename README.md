@@ -1,3 +1,8 @@
+Source of truth:
+docs/spec.md
+docs/state_architecture.md
+docs/data_model.md
+
 # sklad_helper
 
 A new Flutter project.
