@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
+
 import '../../features/catalog/catalog_screen.dart';
 import '../../features/catalog/product_detail_screen.dart';
 import '../../features/transfers/transfers_list_screen.dart';
 import '../../features/transfers/transfer_detail_screen.dart';
+import '../../features/notifications/notifications_screen.dart';
 
 import 'providers.dart';
 import '../../features/auth/auth_screen.dart';
@@ -17,7 +19,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: GoRouterRefreshStream(
       ref.read(firebaseAuthProvider).authStateChanges(),
     ),
-
     redirect: (context, state) {
       final isAuth = state.matchedLocation.startsWith('/auth');
 
@@ -33,7 +34,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       return null;
     },
-
     routes: [
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(
@@ -44,6 +44,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/home',
         builder: (context, state) => const SizedBox.shrink(),
       ),
+
+      // Sprint1
       GoRoute(
         path: '/catalog',
         builder: (context, state) => const CatalogScreen(),
@@ -55,6 +57,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return ProductDetailScreen(article: article);
         },
       ),
+
+      // Sprint2+
       GoRoute(
         path: '/transfers',
         builder: (context, state) => const TransfersListScreen(),
@@ -65,6 +69,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id']!;
           return TransferDetailScreen(transferId: id);
         },
+      ),
+
+      // Sprint6
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

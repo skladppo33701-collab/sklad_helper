@@ -60,7 +60,7 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
         children: [
           transferAsync.when(
             loading: () => const LinearProgressIndicator(minHeight: 2),
-            error: (_, __) => const SizedBox(height: 2),
+            error: (_, _) => const SizedBox(height: 2),
             data: (t) => _Header(
               transfer: t,
               isStorekeeperOrAdmin: isStorekeeperOrAdmin,

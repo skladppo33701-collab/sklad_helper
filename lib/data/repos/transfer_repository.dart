@@ -9,6 +9,27 @@ class TransferRepository {
   CollectionReference<Map<String, dynamic>> get _transfers =>
       _db.collection('transfers');
 
+  Future<void> _emitNotification({
+    required String type,
+    required String title,
+    required String body,
+    required String byUid,
+    String? transferId,
+    List<String> audience = const ['staff'],
+    String severity = 'info',
+  }) async {
+    await _db.collection('notifications').add({
+      'type': type,
+      'title': title,
+      'body': body,
+      'createdAt': FieldValue.serverTimestamp(),
+      'createdBy': byUid,
+      'transferId': transferId,
+      'severity': severity,
+      'audience': audience,
+    });
+  }
+
   Stream<List<Transfer>> watchTransfers({int limit = 50}) {
     return _transfers
         .orderBy('createdAt', descending: true)
@@ -48,6 +69,16 @@ class TransferRepository {
         'updatedBy': userId,
       });
     });
+
+    // One notification per event (no fanout) — free-tier safe.
+    await _emitNotification(
+      type: 'transfer_checking_started',
+      title: 'Checking started', // TODO(l10n)
+      body: 'Transfer $transferId is now checking', // TODO(l10n)
+      byUid: userId,
+      transferId: transferId,
+      audience: const ['staff'],
+    );
   }
 
   Future<void> finishTransfer({
@@ -75,6 +106,15 @@ class TransferRepository {
         'updatedBy': userId,
       });
     });
+
+    await _emitNotification(
+      type: 'transfer_done',
+      title: 'Transfer done', // TODO(l10n)
+      body: 'Transfer $transferId finished', // TODO(l10n)
+      byUid: userId,
+      transferId: transferId,
+      audience: const ['staff'],
+    );
   }
 
   Future<List<TransferEvent>> fetchEventsPage({

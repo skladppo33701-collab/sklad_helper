@@ -145,6 +145,7 @@ class TransferCheckingController extends AutoDisposeAsyncNotifier<void> {
     }
 
     // Scan (UI flow)
+    if (!context.mounted) return;
     final String? scanned = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
     );

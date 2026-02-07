@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/user_profile.dart';
 import '../../data/repos/user_repo.dart';
+import '../../data/repos/notification_repository.dart';
 
 final firebaseAuthProvider = Provider<FirebaseAuth>(
   (ref) => FirebaseAuth.instance,
@@ -14,6 +15,10 @@ final firestoreProvider = Provider<FirebaseFirestore>(
 
 final userRepoProvider = Provider<UserRepo>(
   (ref) => UserRepo(ref.watch(firestoreProvider)),
+);
+
+final notificationRepositoryProvider = Provider<NotificationRepository>(
+  (ref) => NotificationRepository(ref.watch(firestoreProvider)),
 );
 
 final authStateProvider = StreamProvider<User?>((ref) {

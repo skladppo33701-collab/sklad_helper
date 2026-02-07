@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/router/providers.dart';
 import '../admin/admin_users_screen.dart';
@@ -20,8 +21,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final profile = ref.watch(userProfileProvider).asData?.value;
 
     final tabs = <Widget>[
-      const Center(child: Text('Assignments (скоро)')),
-      const Center(child: Text('Tasks (скоро)')),
+      const Center(child: Text('Assignments (скоро)')), // TODO(l10n)
+      const Center(child: Text('Tasks (скоро)')), // TODO(l10n)
       Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -34,7 +35,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () => auth.signOut(),
-              child: const Text('Выйти'),
+              child: const Text('Выйти'), // TODO(l10n)
             ),
             const SizedBox(height: 12),
             if (profile?.role.name == 'admin')
@@ -52,7 +53,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('SkladHelper')),
+      appBar: AppBar(
+        title: const Text('SkladHelper'),
+        actions: [
+          IconButton(
+            tooltip: 'Notifications', // TODO(l10n)
+            onPressed: () => context.push('/notifications'),
+            icon: const Icon(Icons.notifications_none),
+          ),
+        ],
+      ),
       body: tabs[_index],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,

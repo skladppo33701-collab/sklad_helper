@@ -25,6 +25,27 @@ class BarcodeRepository {
   CollectionReference<Map<String, dynamic>> get _products =>
       _db.collection('products');
 
+  Future<void> _emitNotification({
+    required String type,
+    required String title,
+    required String body,
+    required String byUid,
+    String? transferId,
+    List<String> audience = const ['staff'],
+    String severity = 'info',
+  }) async {
+    await _db.collection('notifications').add({
+      'type': type,
+      'title': title,
+      'body': body,
+      'createdAt': FieldValue.serverTimestamp(),
+      'createdBy': byUid,
+      'transferId': transferId,
+      'severity': severity,
+      'audience': audience,
+    });
+  }
+
   Future<String?> resolveArticleByBarcode(String barcode) async {
     final snap = await _db.collection('barcode_index').doc(barcode).get();
     if (!snap.exists) return null;
@@ -53,20 +74,20 @@ class BarcodeRepository {
         final existingArticle =
             (barcodeSnap.data()?['article'] as String?) ?? 'unknown';
         throw BarcodeConflictException(
-          'Штрихкод уже привязан к артикулу: $existingArticle',
+          'Штрихкод уже привязан к артикулу: $existingArticle', // TODO(l10n)
         );
       }
 
       final productSnap = await tx.get(productRef);
       if (!productSnap.exists) {
-        throw Exception('Товар не найден: $article');
+        throw Exception('Товар не найден: $article'); // TODO(l10n)
       }
 
       final currentBarcode = productSnap.data()?['barcode'] as String?;
       if (currentBarcode != null && currentBarcode.isNotEmpty) {
         if (currentBarcode != barcode) {
           throw ProductAlreadyBoundException(
-            'У товара уже есть штрихкод: $currentBarcode',
+            'У товара уже есть штрихкод: $currentBarcode', // TODO(l10n)
           );
         }
         // same barcode -> idempotent; still ensure barcode_index exists
@@ -83,5 +104,13 @@ class BarcodeRepository {
       tx.set(barcodeRef, entry.toMap());
       tx.update(productRef, {'barcode': barcode});
     });
+
+    await _emitNotification(
+      type: 'barcode_bound',
+      title: 'Barcode bound', // TODO(l10n)
+      body: 'Barcode $barcode → $article', // TODO(l10n)
+      byUid: createdByUid,
+      audience: const ['staff'],
+    );
   }
 }

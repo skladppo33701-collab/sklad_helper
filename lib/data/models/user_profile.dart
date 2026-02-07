@@ -27,6 +27,9 @@ class UserProfile {
   final DateTime createdAt;
   final DateTime lastLoginAt;
 
+  /// Sprint6: per-user cursor for in-app notifications feed.
+  final DateTime? notificationsLastSeenAt;
+
   const UserProfile({
     required this.uid,
     required this.role,
@@ -35,6 +38,7 @@ class UserProfile {
     required this.lastLoginAt,
     this.email,
     this.displayName,
+    this.notificationsLastSeenAt,
   });
 
   Map<String, dynamic> toMap() => {
@@ -45,12 +49,18 @@ class UserProfile {
     'isActive': isActive,
     'createdAt': Timestamp.fromDate(createdAt),
     'lastLoginAt': Timestamp.fromDate(lastLoginAt),
+    'notificationsLastSeenAt': notificationsLastSeenAt == null
+        ? null
+        : Timestamp.fromDate(notificationsLastSeenAt!),
   };
 
   static UserProfile fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final d = doc.data() ?? {};
+    final d = doc.data() ?? <String, dynamic>{};
+
     DateTime tsToDt(dynamic v) =>
         (v is Timestamp) ? v.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
+
+    DateTime? tsToDtNullable(dynamic v) => (v is Timestamp) ? v.toDate() : null;
 
     return UserProfile(
       uid: doc.id,
@@ -60,6 +70,7 @@ class UserProfile {
       isActive: (d['isActive'] as bool?) ?? false,
       createdAt: tsToDt(d['createdAt']),
       lastLoginAt: tsToDt(d['lastLoginAt']),
+      notificationsLastSeenAt: tsToDtNullable(d['notificationsLastSeenAt']),
     );
   }
 }
