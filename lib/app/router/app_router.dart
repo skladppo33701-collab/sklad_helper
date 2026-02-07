@@ -60,9 +60,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const TransfersListScreen(),
       ),
       GoRoute(
-        path: '/transfer/:transferId',
+        path: '/transfer/:id',
         builder: (context, state) {
-          final id = state.pathParameters['transferId']!;
+          final id = state.pathParameters['id']!;
           return TransferDetailScreen(transferId: id);
         },
       ),
