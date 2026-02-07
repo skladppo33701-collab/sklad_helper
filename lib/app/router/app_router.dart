@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'dart:async';
 import '../../features/catalog/catalog_screen.dart';
 import '../../features/catalog/product_detail_screen.dart';
+import '../../features/transfers/transfers_list_screen.dart';
+import '../../features/transfers/transfer_detail_screen.dart';
 
 import 'providers.dart';
 import '../../features/auth/auth_screen.dart';
@@ -51,6 +53,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final article = state.pathParameters['article']!;
           return ProductDetailScreen(article: article);
+        },
+      ),
+      GoRoute(
+        path: '/transfers',
+        builder: (context, state) => const TransfersListScreen(),
+      ),
+      GoRoute(
+        path: '/transfer/:transferId',
+        builder: (context, state) {
+          final id = state.pathParameters['transferId']!;
+          return TransferDetailScreen(transferId: id);
         },
       ),
     ],
