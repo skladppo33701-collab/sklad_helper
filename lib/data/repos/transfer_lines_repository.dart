@@ -1,57 +1,81 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/transfer_line.dart';
 
 class LockTakenException implements Exception {
   LockTakenException({required this.lockUserId});
   final String lockUserId;
+
   @override
-  String toString() => 'Locked by $lockUserId';
+  String toString() => 'Locked by other'; // TODO(l10n)
 }
 
-class NotLockOwnerException implements Exception {
+class AlreadyHoldingLockException implements Exception {
+  AlreadyHoldingLockException({required this.lineId});
+  final String lineId;
+
   @override
-  String toString() => 'Not lock owner';
+  String toString() => 'Already holding another lock'; // TODO(l10n)
 }
 
 class LockExpiredException implements Exception {
   @override
-  String toString() => 'Lock expired';
+  String toString() => 'Lock expired'; // TODO(l10n)
+}
+
+class NotLockOwnerException implements Exception {
+  @override
+  String toString() => 'Not lock owner'; // TODO(l10n)
 }
 
 class OverPickException implements Exception {
   @override
-  String toString() => 'Over-pick not allowed';
+  String toString() => 'Over-pick prevented'; // TODO(l10n)
 }
 
 class OverCheckException implements Exception {
   @override
-  String toString() => 'Over-check not allowed';
+  String toString() => 'Over-check prevented'; // TODO(l10n)
 }
 
 class NotFullyPickedException implements Exception {
   @override
-  String toString() => 'Not fully picked';
+  String toString() => 'Not fully picked'; // TODO(l10n)
 }
 
 class TransferLinesRepository {
   TransferLinesRepository(this._db);
+
   final FirebaseFirestore _db;
 
-  CollectionReference<Map<String, dynamic>> _linesRef(String transferId) =>
+  CollectionReference<Map<String, dynamic>> _linesCol(String transferId) =>
       _db.collection('transfers').doc(transferId).collection('lines');
 
-  DocumentReference<Map<String, dynamic>> _lineRef(
-    String transferId,
-    String lineId,
-  ) => _linesRef(transferId).doc(lineId);
+  DocumentReference<Map<String, dynamic>> _lineRef({
+    required String transferId,
+    required String lineId,
+  }) => _linesCol(transferId).doc(lineId);
+
+  DocumentReference<Map<String, dynamic>> _userLockRef({
+    required String transferId,
+    required String userId,
+  }) => _db
+      .collection('transfers')
+      .doc(transferId)
+      .collection('locks')
+      .doc(userId);
 
   Stream<List<TransferLine>> watchLines(String transferId) {
-    return _linesRef(transferId)
+    return _linesCol(transferId)
         .orderBy('category')
         .orderBy('name')
         .snapshots()
-        .map((s) => s.docs.map(TransferLine.fromDoc).toList(growable: false));
+        .map((q) => q.docs.map(TransferLine.fromDoc).toList(growable: false));
   }
+
+  // ============================================================
+  // Picking lock (loader)
+  // ============================================================
 
   Future<void> acquireLock({
     required String transferId,
@@ -59,24 +83,61 @@ class TransferLinesRepository {
     required String userId,
     Duration ttl = const Duration(minutes: 5),
   }) async {
-    final ref = _lineRef(transferId, lineId);
-    final now = DateTime.now();
-    final expiresAt = now.add(ttl);
+    final ref = _lineRef(transferId: transferId, lineId: lineId);
+    final userLockRef = _userLockRef(transferId: transferId, userId: userId);
 
     await _db.runTransaction((tx) async {
-      final snap = await tx.get(ref);
-      if (!snap.exists) throw Exception('Line not found');
+      final now = DateTime.now();
+      final expiresAt = now.add(ttl);
 
-      final data = snap.data() ?? <String, dynamic>{};
-      final currentLock = TransferLineLock.fromMap(data['lock']);
+      final userLockSnap = await tx.get(userLockRef);
+      if (userLockSnap.exists) {
+        final d = userLockSnap.data() ?? <String, dynamic>{};
+        final existingExpires = d['expiresAt'];
+        final existingLineId = d['lineId'] as String?;
 
-      final lockActive = currentLock != null && !currentLock.isExpired;
-      if (lockActive && currentLock.userId != userId) {
-        throw LockTakenException(lockUserId: currentLock.userId);
+        final existingExpiresDt = (existingExpires is Timestamp)
+            ? existingExpires.toDate()
+            : null;
+
+        final isActive =
+            existingExpiresDt != null && existingExpiresDt.isAfter(now);
+
+        if (isActive && existingLineId != null && existingLineId != lineId) {
+          throw AlreadyHoldingLockException(lineId: existingLineId);
+        }
       }
 
-      tx.update(ref, {
-        'lock': {'userId': userId, 'expiresAt': Timestamp.fromDate(expiresAt)},
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('Line not found'); // TODO(l10n)
+
+      final data = snap.data() ?? <String, dynamic>{};
+      final lock = data['lock'];
+
+      final lockUserId = (lock is Map) ? lock['userId'] as String? : null;
+      final lockExpires = (lock is Map) ? lock['expiresAt'] : null;
+      final lockExpiresDt = (lockExpires is Timestamp)
+          ? lockExpires.toDate()
+          : null;
+
+      final lockActive =
+          lockUserId != null &&
+          lockExpiresDt != null &&
+          lockExpiresDt.isAfter(now);
+
+      if (lockActive && lockUserId != userId) {
+        throw LockTakenException(lockUserId: lockUserId);
+      }
+
+      final newLock = <String, dynamic>{
+        'userId': userId,
+        'expiresAt': Timestamp.fromDate(expiresAt),
+      };
+
+      tx.update(ref, {'lock': newLock});
+      tx.set(userLockRef, {
+        'lineId': lineId,
+        'expiresAt': Timestamp.fromDate(expiresAt),
       });
     });
   }
@@ -86,21 +147,43 @@ class TransferLinesRepository {
     required String lineId,
     required String userId,
   }) async {
-    final ref = _lineRef(transferId, lineId);
+    final ref = _lineRef(transferId: transferId, lineId: lineId);
+    final userLockRef = _userLockRef(transferId: transferId, userId: userId);
 
     await _db.runTransaction((tx) async {
+      final now = DateTime.now();
+
       final snap = await tx.get(ref);
-      if (!snap.exists) return;
+      if (!snap.exists) throw Exception('Line not found'); // TODO(l10n)
 
       final data = snap.data() ?? <String, dynamic>{};
-      final currentLock = TransferLineLock.fromMap(data['lock']);
-      if (currentLock == null) return;
+      final lock = data['lock'];
 
-      if (currentLock.userId != userId) {
+      final lockUserId = (lock is Map) ? lock['userId'] as String? : null;
+      final lockExpires = (lock is Map) ? lock['expiresAt'] : null;
+      final lockExpiresDt = (lockExpires is Timestamp)
+          ? lockExpires.toDate()
+          : null;
+
+      final lockActive =
+          lockUserId != null &&
+          lockExpiresDt != null &&
+          lockExpiresDt.isAfter(now);
+
+      if (lockActive && lockUserId != userId) {
         throw NotLockOwnerException();
       }
 
       tx.update(ref, {'lock': null});
+
+      final userLockSnap = await tx.get(userLockRef);
+      if (userLockSnap.exists) {
+        final d = userLockSnap.data() ?? <String, dynamic>{};
+        final heldLineId = d['lineId'] as String?;
+        if (heldLineId == lineId) {
+          tx.delete(userLockRef);
+        }
+      }
     });
   }
 
@@ -108,40 +191,70 @@ class TransferLinesRepository {
     required String transferId,
     required String lineId,
     required String userId,
-    bool autoReleaseOnComplete = false,
+    bool autoReleaseOnComplete = true,
   }) async {
-    final ref = _lineRef(transferId, lineId);
+    final ref = _lineRef(transferId: transferId, lineId: lineId);
+    final userLockRef = _userLockRef(transferId: transferId, userId: userId);
 
     await _db.runTransaction((tx) async {
+      final now = DateTime.now();
+
       final snap = await tx.get(ref);
-      if (!snap.exists) throw Exception('Line not found');
+      if (!snap.exists) throw Exception('Line not found'); // TODO(l10n)
 
       final data = snap.data() ?? <String, dynamic>{};
-      final lock = TransferLineLock.fromMap(data['lock']);
 
-      if (lock == null) throw NotLockOwnerException();
-      if (lock.userId != userId) throw NotLockOwnerException();
-      if (lock.isExpired) throw LockExpiredException();
+      final qtyPlanned = (data['qtyPlanned'] as num?)?.toInt() ?? 0;
+      final qtyPicked = (data['qtyPicked'] as num?)?.toInt() ?? 0;
 
-      final planned = (data['qtyPlanned'] as num?)?.toInt() ?? 0;
-      final picked = (data['qtyPicked'] as num?)?.toInt() ?? 0;
+      final lock = data['lock'];
+      final lockUserId = (lock is Map) ? lock['userId'] as String? : null;
+      final lockExpires = (lock is Map) ? lock['expiresAt'] : null;
+      final lockExpiresDt = (lockExpires is Timestamp)
+          ? lockExpires.toDate()
+          : null;
 
-      if (picked >= planned) throw OverPickException();
+      if (lockUserId == null || lockExpiresDt == null) {
+        throw NotLockOwnerException();
+      }
+      if (lockUserId != userId) {
+        throw NotLockOwnerException();
+      }
+      if (!lockExpiresDt.isAfter(now)) {
+        throw LockExpiredException();
+      }
+      if (qtyPicked >= qtyPlanned) {
+        throw OverPickException();
+      }
 
-      final newPicked = picked + 1;
+      final newPicked = qtyPicked + 1;
+      final completed = newPicked >= qtyPlanned;
+
       final updates = <String, dynamic>{'qtyPicked': newPicked};
-
-      if (autoReleaseOnComplete && newPicked >= planned) {
+      if (autoReleaseOnComplete && completed) {
         updates['lock'] = null;
       }
 
+      // ✅ only one update
       tx.update(ref, updates);
+
+      if (autoReleaseOnComplete && completed) {
+        final userLockSnap = await tx.get(userLockRef);
+        if (userLockSnap.exists) {
+          final d = userLockSnap.data() ?? <String, dynamic>{};
+          final heldLineId = d['lineId'] as String?;
+          if (heldLineId == lineId) {
+            tx.delete(userLockRef);
+          }
+        }
+      }
     });
   }
 
-  // -------------------------
-  // Sprint 5: checking locks
-  // -------------------------
+  // ============================================================
+  // Checking lock (storekeeper/admin) — Sprint 5
+  // Field: checkedLock: { userId, expiresAt }
+  // ============================================================
 
   Future<void> acquireCheckLock({
     required String transferId,
@@ -149,20 +262,35 @@ class TransferLinesRepository {
     required String userId,
     Duration ttl = const Duration(minutes: 5),
   }) async {
-    final ref = _lineRef(transferId, lineId);
-    final now = DateTime.now();
-    final expiresAt = now.add(ttl);
+    final ref = _lineRef(transferId: transferId, lineId: lineId);
 
     await _db.runTransaction((tx) async {
+      final now = DateTime.now();
+      final expiresAt = now.add(ttl);
+
       final snap = await tx.get(ref);
-      if (!snap.exists) throw Exception('Line not found');
+      if (!snap.exists) throw Exception('Line not found'); // TODO(l10n)
 
       final data = snap.data() ?? <String, dynamic>{};
-      final current = TransferLineLock.fromMap(data['checkedLock']);
+      final checkedLock = data['checkedLock'];
 
-      final active = current != null && !current.isExpired;
-      if (active && current.userId != userId) {
-        throw LockTakenException(lockUserId: current.userId);
+      final lockUserId = (checkedLock is Map)
+          ? checkedLock['userId'] as String?
+          : null;
+      final lockExpires = (checkedLock is Map)
+          ? checkedLock['expiresAt']
+          : null;
+      final lockExpiresDt = (lockExpires is Timestamp)
+          ? lockExpires.toDate()
+          : null;
+
+      final active =
+          lockUserId != null &&
+          lockExpiresDt != null &&
+          lockExpiresDt.isAfter(now);
+
+      if (active && lockUserId != userId) {
+        throw LockTakenException(lockUserId: lockUserId);
       }
 
       tx.update(ref, {
@@ -179,17 +307,34 @@ class TransferLinesRepository {
     required String lineId,
     required String userId,
   }) async {
-    final ref = _lineRef(transferId, lineId);
+    final ref = _lineRef(transferId: transferId, lineId: lineId);
 
     await _db.runTransaction((tx) async {
+      final now = DateTime.now();
+
       final snap = await tx.get(ref);
-      if (!snap.exists) return;
+      if (!snap.exists) throw Exception('Line not found'); // TODO(l10n)
 
       final data = snap.data() ?? <String, dynamic>{};
-      final lock = TransferLineLock.fromMap(data['checkedLock']);
-      if (lock == null) return;
+      final checkedLock = data['checkedLock'];
 
-      if (lock.userId != userId) {
+      final lockUserId = (checkedLock is Map)
+          ? checkedLock['userId'] as String?
+          : null;
+      final lockExpires = (checkedLock is Map)
+          ? checkedLock['expiresAt']
+          : null;
+      final lockExpiresDt = (lockExpires is Timestamp)
+          ? lockExpires.toDate()
+          : null;
+
+      final active =
+          lockUserId != null &&
+          lockExpiresDt != null &&
+          lockExpiresDt.isAfter(now);
+
+      // owner can release; if expired and not mine -> allow clearing too (support)
+      if (active && lockUserId != userId) {
         throw NotLockOwnerException();
       }
 
@@ -203,33 +348,55 @@ class TransferLinesRepository {
     required String userId,
     bool autoReleaseOnComplete = true,
   }) async {
-    final ref = _lineRef(transferId, lineId);
+    final ref = _lineRef(transferId: transferId, lineId: lineId);
 
     await _db.runTransaction((tx) async {
+      final now = DateTime.now();
+
       final snap = await tx.get(ref);
-      if (!snap.exists) throw Exception('Line not found');
+      if (!snap.exists) throw Exception('Line not found'); // TODO(l10n)
 
       final data = snap.data() ?? <String, dynamic>{};
 
-      final planned = (data['qtyPlanned'] as num?)?.toInt() ?? 0;
-      final picked = (data['qtyPicked'] as num?)?.toInt() ?? 0;
-      final checked = (data['qtyChecked'] as num?)?.toInt() ?? 0;
+      final qtyPlanned = (data['qtyPlanned'] as num?)?.toInt() ?? 0;
+      final qtyPicked = (data['qtyPicked'] as num?)?.toInt() ?? 0;
+      final qtyChecked = (data['qtyChecked'] as num?)?.toInt() ?? 0;
 
-      // MVP: must be fully picked first
-      if (picked < planned) throw NotFullyPickedException();
+      // MVP rule: cannot check if not fully picked
+      if (qtyPicked < qtyPlanned) {
+        throw NotFullyPickedException();
+      }
 
-      final lock = TransferLineLock.fromMap(data['checkedLock']);
-      if (lock == null) throw NotLockOwnerException();
-      if (lock.userId != userId) throw NotLockOwnerException();
-      if (lock.isExpired) throw LockExpiredException();
+      final checkedLock = data['checkedLock'];
+      final lockUserId = (checkedLock is Map)
+          ? checkedLock['userId'] as String?
+          : null;
+      final lockExpires = (checkedLock is Map)
+          ? checkedLock['expiresAt']
+          : null;
+      final lockExpiresDt = (lockExpires is Timestamp)
+          ? lockExpires.toDate()
+          : null;
 
-      if (checked >= planned) throw OverCheckException();
+      final lockActive =
+          lockUserId != null &&
+          lockExpiresDt != null &&
+          lockExpiresDt.isAfter(now);
 
-      final newChecked = checked + 1;
+      if (!lockActive || lockUserId != userId) {
+        // must hold non-expired check lock
+        throw NotLockOwnerException();
+      }
+
+      if (qtyChecked >= qtyPlanned) {
+        throw OverCheckException();
+      }
+
+      final newChecked = qtyChecked + 1;
+      final completed = newChecked >= qtyPlanned;
 
       final updates = <String, dynamic>{'qtyChecked': newChecked};
-
-      if (autoReleaseOnComplete && newChecked >= planned) {
+      if (autoReleaseOnComplete && completed) {
         updates['checkedLock'] = null;
       }
 
