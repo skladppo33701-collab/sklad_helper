@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart'; // Добавлен этот импорт для kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -74,32 +75,46 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final auth = ref.read(firebaseAuthProvider);
 
     await _withBusy(() async {
-      final googleSignIn = GoogleSignIn(scopes: const ['email', 'profile']);
+      if (kIsWeb) {
+        // --- WEB ВЕРСИЯ (через Firebase Popup) ---
+        // На Web это самый надежный способ. Он сам открывает окно,
+        // получает ID Token и логинит пользователя.
+        try {
+          await auth.signInWithPopup(GoogleAuthProvider());
+          _snack('Успешный вход через Google (Web)');
+        } catch (e) {
+          _snack('Ошибка входа Web: $e');
+        }
+      } else {
+        // --- MOBILE ВЕРСИЯ (Native SDK) ---
+        // На Android/iOS используем google_sign_in для нативного UX
+        final googleSignIn = GoogleSignIn(scopes: const ['email', 'profile']);
 
-      // Force account picker every time (prevents “nothing happens” cases).
-      await googleSignIn.signOut();
+        await googleSignIn
+            .signOut(); // Сбрасываем кэш, чтобы всегда был выбор аккаунта
 
-      final googleUser = await googleSignIn.signIn();
+        final googleUser = await googleSignIn.signIn();
 
-      if (googleUser == null) {
-        _snack('Вход через Google отменён или не доступен на устройстве.');
-        return;
+        if (googleUser == null) {
+          // Пользователь закрыл окно выбора
+          return;
+        }
+
+        final googleAuth = await googleUser.authentication;
+
+        if (googleAuth.idToken == null) {
+          _snack('Ошибка: Google не вернул idToken (Mobile).');
+          return;
+        }
+
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        await auth.signInWithCredential(credential);
+        _snack('Успешный вход через Google (Mobile)');
       }
-
-      final googleAuth = await googleUser.authentication;
-
-      if (googleAuth.idToken == null) {
-        _snack('Google не вернул idToken. Проверьте настройки Google Sign-In.');
-        return;
-      }
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await auth.signInWithCredential(credential);
-      _snack('Успешный вход через Google');
     });
   }
 

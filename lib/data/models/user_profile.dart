@@ -27,7 +27,7 @@ class UserProfile {
   final DateTime createdAt;
   final DateTime lastLoginAt;
 
-  /// Sprint6: per-user cursor for in-app notifications feed.
+  /// Sprint 6: in-app notifications cursor
   final DateTime? notificationsLastSeenAt;
 
   const UserProfile({
@@ -36,31 +36,37 @@ class UserProfile {
     required this.isActive,
     required this.createdAt,
     required this.lastLoginAt,
+    this.notificationsLastSeenAt,
     this.email,
     this.displayName,
-    this.notificationsLastSeenAt,
   });
 
-  Map<String, dynamic> toMap() => {
-    'uid': uid,
-    'email': email,
-    'displayName': displayName,
-    'role': roleToString(role),
-    'isActive': isActive,
-    'createdAt': Timestamp.fromDate(createdAt),
-    'lastLoginAt': Timestamp.fromDate(lastLoginAt),
-    'notificationsLastSeenAt': notificationsLastSeenAt == null
-        ? null
-        : Timestamp.fromDate(notificationsLastSeenAt!),
-  };
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      'uid': uid,
+      'email': email,
+      'displayName': displayName,
+      'role': roleToString(role),
+      'isActive': isActive,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'lastLoginAt': Timestamp.fromDate(lastLoginAt),
+    };
+
+    final nls = notificationsLastSeenAt;
+    if (nls != null) {
+      map['notificationsLastSeenAt'] = Timestamp.fromDate(nls);
+    }
+
+    return map;
+  }
 
   static UserProfile fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final d = doc.data() ?? <String, dynamic>{};
+    final d = doc.data() ?? {};
 
     DateTime tsToDt(dynamic v) =>
         (v is Timestamp) ? v.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
 
-    DateTime? tsToDtNullable(dynamic v) => (v is Timestamp) ? v.toDate() : null;
+    DateTime? tsToDtOrNull(dynamic v) => (v is Timestamp) ? v.toDate() : null;
 
     return UserProfile(
       uid: doc.id,
@@ -70,7 +76,7 @@ class UserProfile {
       isActive: (d['isActive'] as bool?) ?? false,
       createdAt: tsToDt(d['createdAt']),
       lastLoginAt: tsToDt(d['lastLoginAt']),
-      notificationsLastSeenAt: tsToDtNullable(d['notificationsLastSeenAt']),
+      notificationsLastSeenAt: tsToDtOrNull(d['notificationsLastSeenAt']),
     );
   }
 }
