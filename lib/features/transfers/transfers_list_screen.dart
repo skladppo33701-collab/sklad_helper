@@ -47,15 +47,15 @@ class _StatusBadge extends StatelessWidget {
   String get _label {
     switch (status) {
       case TransferStatus.new_:
-        return 'NEW'; // TODO(l10n)
+        return 'New'; // TODO(l10n)
       case TransferStatus.picking:
-        return 'PICKING'; // TODO(l10n)
+        return 'In progress'; // TODO(l10n)
       case TransferStatus.picked:
-        return 'PICKED'; // TODO(l10n)
+        return 'Picked'; // TODO(l10n)
       case TransferStatus.checking:
-        return 'CHECKING'; // TODO(l10n)
+        return 'Checking'; // TODO(l10n)
       case TransferStatus.done:
-        return 'DONE'; // TODO(l10n)
+        return 'Done'; // TODO(l10n)
     }
   }
 

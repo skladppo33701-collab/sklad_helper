@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/router/providers.dart';
+import '../../data/models/transfer.dart';
 import '../../data/models/transfer_line.dart';
+import '../../data/models/user_profile.dart';
 import '../../data/repos/transfer_lines_repository.dart';
 import '../../utils/barcode_validator.dart';
 import '../catalog/barcode_scanner_screen.dart';
@@ -35,6 +37,45 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
     return lock.userId == myUid;
   }
 
+  String _statusLabel(TransferStatus s) {
+    switch (s) {
+      case TransferStatus.new_:
+        return 'New'; // TODO(l10n)
+      case TransferStatus.picking:
+        return 'In progress'; // TODO(l10n)
+      case TransferStatus.picked:
+        return 'Picked'; // TODO(l10n)
+      case TransferStatus.checking:
+        return 'Checking'; // TODO(l10n)
+      case TransferStatus.done:
+        return 'Done'; // TODO(l10n)
+    }
+  }
+
+  ({String label, String from, String to})? _nextAction(TransferStatus s) {
+    final from = transferStatusToString(s);
+    switch (s) {
+      case TransferStatus.new_:
+        return (
+          label: 'Start picking',
+          from: from,
+          to: 'picking',
+        ); // TODO(l10n)
+      case TransferStatus.picking:
+        return (label: 'Mark picked', from: from, to: 'picked'); // TODO(l10n)
+      case TransferStatus.picked:
+        return (
+          label: 'Start checking',
+          from: from,
+          to: 'checking',
+        ); // TODO(l10n)
+      case TransferStatus.checking:
+        return (label: 'Finish', from: from, to: 'done'); // TODO(l10n)
+      case TransferStatus.done:
+        return null;
+    }
+  }
+
   Future<void> _releaseLock(TransferLine line) async {
     final uid = ref.read(firebaseAuthProvider).currentUser?.uid;
     if (uid == null) return;
@@ -64,7 +105,6 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
     if (uid == null) return;
 
     final role = ref.read(currentRoleProvider);
-
     setState(() => _busyLineId = line.lineId);
 
     bool shouldRelease = false;
@@ -166,100 +206,127 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final uid = ref.watch(firebaseAuthProvider).currentUser?.uid;
+    final role = ref.watch(currentRoleProvider);
+
+    final transferAsync = ref.watch(transferProvider(widget.transferId));
     final linesAsync = ref.watch(
       transferLinesStreamProvider(widget.transferId),
     );
-    final uid = ref.watch(firebaseAuthProvider).currentUser?.uid;
+
+    final statusCtrl = ref.watch(transferStatusControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transfer'), // TODO(l10n)
       ),
-      body: linesAsync.when(
-        data: (lines) {
-          if (lines.isEmpty) {
-            return const Center(child: Text('No lines')); // TODO(l10n)
-          }
-
-          final grouped = <String, List<TransferLine>>{};
-          for (final l in lines) {
-            (grouped[l.category.isEmpty ? '—' : l.category] ??= []).add(l);
-          }
-          final categories = grouped.keys.toList()..sort();
-
-          return ListView.builder(
-            itemCount: categories.length,
-            itemBuilder: (context, idx) {
-              final cat = categories[idx];
-              final catLines = grouped[cat]!;
-              return _CategorySection(
-                category: cat,
-                lines: catLines,
-                busyLineId: _busyLineId,
-                myUid: uid,
-                isCompleted: _isCompleted,
-                isLockedByOther: _isLockedByOther,
-                isLockedByMe: _isLockedByMe,
-                onPrepare: (line) => _prepareOrContinue(line, needsLock: true),
-                onContinue: (line) =>
-                    _prepareOrContinue(line, needsLock: false),
-                onCancel: _releaseLock,
-              );
-            },
-          );
-        },
+      body: transferAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')), // TODO(l10n)
+        data: (transfer) {
+          final next = _nextAction(transfer.status);
+          final canAdvance =
+              (role == UserRole.admin || role == UserRole.storekeeper) &&
+              next != null;
+
+          return Column(
+            children: [
+              Material(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _statusLabel(transfer.status),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      if (canAdvance)
+                        FilledButton(
+                          onPressed: statusCtrl.isLoading
+                              ? null
+                              : () async {
+                                  await ref
+                                      .read(
+                                        transferStatusControllerProvider
+                                            .notifier,
+                                      )
+                                      .setStatus(
+                                        transferId: widget.transferId,
+                                        from: next.from,
+                                        to: next.to,
+                                      );
+                                },
+                          child: statusCtrl.isLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(next.label),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: linesAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) =>
+                      Center(child: Text('Error: $e')), // TODO(l10n)
+                  data: (lines) {
+                    if (lines.isEmpty) {
+                      return const Center(
+                        child: Text('No lines'),
+                      ); // TODO(l10n)
+                    }
+
+                    final grouped = <String, List<TransferLine>>{};
+                    for (final l in lines) {
+                      (grouped[l.category.isEmpty ? '—' : l.category] ??= [])
+                          .add(l);
+                    }
+                    final categories = grouped.keys.toList()..sort();
+
+                    return ListView.builder(
+                      itemCount: categories.length,
+                      itemBuilder: (context, idx) {
+                        final cat = categories[idx];
+                        final catLines = grouped[cat]!;
+                        return ExpansionTile(
+                          title: Text(cat),
+                          children: [
+                            for (final l in catLines)
+                              _LineTile(
+                                line: l,
+                                busyLineId: _busyLineId,
+                                myUid: uid,
+                                isCompleted: _isCompleted,
+                                isLockedByOther: _isLockedByOther,
+                                isLockedByMe: _isLockedByMe,
+                                onPrepare: (line) =>
+                                    _prepareOrContinue(line, needsLock: true),
+                                onContinue: (line) =>
+                                    _prepareOrContinue(line, needsLock: false),
+                                onCancel: _releaseLock,
+                              ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
-    );
-  }
-}
-
-class _CategorySection extends StatelessWidget {
-  const _CategorySection({
-    required this.category,
-    required this.lines,
-    required this.busyLineId,
-    required this.myUid,
-    required this.isCompleted,
-    required this.isLockedByOther,
-    required this.isLockedByMe,
-    required this.onPrepare,
-    required this.onContinue,
-    required this.onCancel,
-  });
-
-  final String category;
-  final List<TransferLine> lines;
-  final String? busyLineId;
-  final String? myUid;
-
-  final bool Function(TransferLine) isCompleted;
-  final bool Function(TransferLine, String) isLockedByOther;
-  final bool Function(TransferLine, String) isLockedByMe;
-
-  final Future<void> Function(TransferLine) onPrepare;
-  final Future<void> Function(TransferLine) onContinue;
-  final Future<void> Function(TransferLine) onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpansionTile(
-      title: Text(category),
-      children: [
-        for (final l in lines)
-          _LineTile(
-            line: l,
-            busyLineId: busyLineId,
-            myUid: myUid,
-            isCompleted: isCompleted,
-            isLockedByOther: isLockedByOther,
-            isLockedByMe: isLockedByMe,
-            onPrepare: onPrepare,
-            onContinue: onContinue,
-            onCancel: onCancel,
-          ),
-      ],
     );
   }
 }
@@ -312,8 +379,8 @@ class _LineTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Planned: ${line.qtyPlanned} | Picked: ${line.qtyPicked}', // TODO(l10n)
-          ),
+            'Planned: ${line.qtyPlanned} | Picked: ${line.qtyPicked}',
+          ), // TODO(l10n)
           if (lockedByOther)
             Padding(
               padding: const EdgeInsets.only(top: 2),

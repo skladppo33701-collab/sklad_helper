@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/transfer.dart';
 import '../models/transfer_event.dart';
-import '../models/user_profile.dart'; // existing UserRole
+import '../models/user_profile.dart';
 
 class InvalidStatusTransitionException implements Exception {
   InvalidStatusTransitionException(this.message);
@@ -10,10 +10,23 @@ class InvalidStatusTransitionException implements Exception {
   String toString() => message;
 }
 
-bool isValidStatusTransition(String from, String to, UserRole role) {
-  // loaders can never change status
+class StaleTransferStatusException implements Exception {
+  StaleTransferStatusException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
+/// MVP status transition rules (role-aware).
+bool isValidStatusTransition({
+  required String from,
+  required String to,
+  required UserRole role,
+}) {
+  // loaders cannot change transfer status
   if (role == UserRole.loader) return false;
 
+  // forward-only transitions
   const allowed = <String, Set<String>>{
     'new': {'picking'},
     'picking': {'picked'},
@@ -22,7 +35,7 @@ bool isValidStatusTransition(String from, String to, UserRole role) {
     'done': <String>{},
   };
 
-  // Optional fast-close: new -> done for admin/storekeeper
+  // optional fast-close: admin/storekeeper can do new->done
   final canFastClose = (role == UserRole.admin || role == UserRole.storekeeper);
   if (canFastClose && from == 'new' && to == 'done') return true;
 
@@ -37,7 +50,7 @@ class TransferRepository {
       _db.collection('transfers');
 
   Stream<List<Transfer>> watchTransfers({int limit = 50}) {
-    // Free-tier: stream ONLY transfers list, no subcollections.
+    // Free-tier: stream ONLY transfers list.
     return _transfers
         .orderBy('createdAt', descending: true)
         .limit(limit)
@@ -45,48 +58,97 @@ class TransferRepository {
         .map((s) => s.docs.map(Transfer.fromDoc).toList(growable: false));
   }
 
+  Future<Transfer> fetchTransfer(String transferId) async {
+    final snap = await _transfers.doc(transferId).get();
+    if (!snap.exists) {
+      throw Exception('Transfer not found');
+    }
+    return Transfer.fromDoc(snap);
+  }
+
   Future<String> createTransfer({
     required String title,
     required String createdByUid,
   }) async {
     final ref = _transfers.doc();
-    final now = DateTime.now();
     await ref.set({
       'transferId': ref.id,
       'title': title,
-      'createdAt': Timestamp.fromDate(now),
+      'createdAt': FieldValue.serverTimestamp(),
       'createdBy': createdByUid,
       'status': 'new',
+      // optional stage timestamps
+      'pickedAt': null,
+      'checkedAt': null,
+      'doneAt': null,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
     return ref.id;
   }
 
-  /// Status update with:
-  /// - read current status
+  /// Status update MUST be transaction-based, stale-safe, role-gated.
+  ///
+  /// - read transfer
+  /// - ensure current status == from (stale write protection)
   /// - validate transition (role-aware)
-  /// - update in transaction (race-safe)
+  /// - update status + updatedAt + stage timestamp for target status
   Future<void> updateStatus({
     required String transferId,
-    required TransferStatus to,
+    required String from,
+    required String to,
+    required String byUid,
     required UserRole role,
   }) async {
     final ref = _transfers.doc(transferId);
+
+    // A) fail fast: client-side guard
+    if (!isValidStatusTransition(from: from, to: to, role: role)) {
+      throw InvalidStatusTransitionException(
+        'Invalid transition: $from -> $to',
+      );
+    }
 
     await _db.runTransaction((tx) async {
       final snap = await tx.get(ref);
       if (!snap.exists) throw Exception('Transfer not found');
 
       final data = snap.data() ?? <String, dynamic>{};
-      final from = (data['status'] as String?) ?? 'new';
-      final toStr = transferStatusToString(to);
+      final current = (data['status'] as String?) ?? 'new';
 
-      if (!isValidStatusTransition(from, toStr, role)) {
-        throw InvalidStatusTransitionException(
-          'Invalid status transition: $from -> $toStr',
+      // stale write protection
+      if (current != from) {
+        throw StaleTransferStatusException(
+          'Stale status. Current=$current, expected=$from',
         );
       }
 
-      tx.update(ref, {'status': toStr});
+      // B) guard again inside transaction (defense in depth)
+      if (!isValidStatusTransition(from: current, to: to, role: role)) {
+        throw InvalidStatusTransitionException(
+          'Invalid transition: $current -> $to',
+        );
+      }
+
+      final updates = <String, dynamic>{
+        'status': to,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (to == 'picked') {
+        updates['pickedAt'] = FieldValue.serverTimestamp();
+      } else if (to == 'checking') {
+        updates['checkedAt'] = FieldValue.serverTimestamp();
+      } else if (to == 'done') {
+        updates['doneAt'] = FieldValue.serverTimestamp();
+      }
+
+      tx.update(ref, updates);
+
+      // Optional (NOT realtime): could append event here, but MVP says events are NOT realtime;
+      // still allowed to write events, but do not stream them. Omit for now to minimize writes.
+      // If you add events later, write a single small event doc here.
+      // (No-op)
+      (void,) byUid;
     });
   }
 
@@ -94,7 +156,7 @@ class TransferRepository {
     await _transfers.doc(transferId).delete();
   }
 
-  /// D) EVENTS are NOT realtime: get() page with pagination.
+  /// Events are NOT realtime: get() page with pagination.
   Future<List<TransferEvent>> fetchEventsPage({
     required String transferId,
     int limit = 30,
