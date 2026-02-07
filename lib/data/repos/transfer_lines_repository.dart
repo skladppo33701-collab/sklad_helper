@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/transfer_line.dart';
-import '../models/user_profile.dart'; // existing UserRole
+import '../models/user_profile.dart';
 
-// Typed exceptions
 class LockTakenException implements Exception {
   LockTakenException({required this.lockUserId});
   final String lockUserId;
@@ -43,6 +42,9 @@ class TransferLinesRepository {
   TransferLinesRepository(this._db);
   final FirebaseFirestore _db;
 
+  // Grace window to reduce client clock-skew issues (MVP).
+  static const Duration _clockSkewGrace = Duration(seconds: 10);
+
   CollectionReference<Map<String, dynamic>> _linesRef(String transferId) =>
       _db.collection('transfers').doc(transferId).collection('lines');
 
@@ -60,7 +62,7 @@ class TransferLinesRepository {
       _db.collection('barcode_index').doc(barcode);
 
   Stream<List<TransferLine>> watchLines(String transferId) {
-    // Allowed: only while details open.
+    // Allowed: stream lines only while details screen is open.
     return _linesRef(transferId)
         .orderBy('category')
         .orderBy('article')
@@ -68,9 +70,11 @@ class TransferLinesRepository {
         .map((s) => s.docs.map(TransferLine.fromDoc).toList(growable: false));
   }
 
-  /// B2 + B4:
-  /// - line.lock set only if unlocked or expired
-  /// - ALSO enforce "one active lock per transfer per user" via transfers/{transferId}/locks/{uid}
+  /// Acquire lock for a line using transaction:
+  /// - allow if line.lock is null or expired
+  /// - deny if locked by other (not expired)
+  /// Also enforces "one active lock per transfer per user" using:
+  /// transfers/{transferId}/locks/{uid} -> { lineId, expiresAt }
   Future<void> tryAcquireLock({
     required String transferId,
     required String lineId,
@@ -79,11 +83,12 @@ class TransferLinesRepository {
   }) async {
     final lineRef = _lineDoc(transferId, lineId);
     final userLockRef = _userLockDoc(transferId, userId);
+
     final now = DateTime.now();
     final expiresAt = now.add(ttl);
 
     await _db.runTransaction((tx) async {
-      // 1) check existing user lock doc (prevents same user 2 devices)
+      // 1) Check existing user lock doc to prevent same user holding 2 locks (2 devices)
       final userLockSnap = await tx.get(userLockRef);
       if (userLockSnap.exists) {
         final d = userLockSnap.data() ?? <String, dynamic>{};
@@ -93,25 +98,30 @@ class TransferLinesRepository {
             : DateTime.fromMillisecondsSinceEpoch(0);
         final currentLineId = d['lineId'] as String? ?? '';
 
-        if (DateTime.now().isBefore(currentExpires)) {
-          // active lock exists
+        // active if expiresAt is sufficiently in the future
+        final isActive = currentExpires.isAfter(
+          DateTime.now().add(_clockSkewGrace),
+        );
+        if (isActive) {
           throw AlreadyHoldingLockException(lineId: currentLineId);
         }
       }
 
-      // 2) check line lock
+      // 2) Check line lock
       final lineSnap = await tx.get(lineRef);
       if (!lineSnap.exists) throw Exception('Line not found');
       final lineData = lineSnap.data() ?? <String, dynamic>{};
 
       final currentLock = TransferLineLock.fromMap(lineData['lock']);
-      final lockActive = currentLock != null && !currentLock.isExpired;
+      final lockActive =
+          currentLock != null &&
+          currentLock.expiresAt.isAfter(DateTime.now().add(_clockSkewGrace));
 
       if (lockActive && currentLock.userId != userId) {
         throw LockTakenException(lockUserId: currentLock.userId);
       }
 
-      // 3) write both lock locations
+      // 3) Write both lock locations
       tx.update(lineRef, {
         'lock': {'userId': userId, 'expiresAt': Timestamp.fromDate(expiresAt)},
       });
@@ -123,10 +133,10 @@ class TransferLinesRepository {
     });
   }
 
-  /// B3 + B4:
-  /// - only owner can clear
-  /// - if expired, admin/storekeeper may clear (optional)
-  /// - clear user lock doc only if it matches
+  /// Release lock:
+  /// - owner can clear anytime
+  /// - if expired, storekeeper/admin can clear as well (support)
+  /// Also clears user lock doc if it matches this line.
   Future<void> releaseLock({
     required String transferId,
     required String lineId,
@@ -145,7 +155,11 @@ class TransferLinesRepository {
       if (current == null) return;
 
       final isOwner = current.userId == userId;
-      final isExpired = current.isExpired;
+
+      final now = DateTime.now();
+      final isExpired = current.expiresAt.isBefore(
+        now.subtract(_clockSkewGrace),
+      );
       final canClearExpired =
           isExpired && (role == UserRole.admin || role == UserRole.storekeeper);
 
@@ -153,10 +167,9 @@ class TransferLinesRepository {
         throw NotLockOwnerException();
       }
 
-      // clear line lock
       tx.update(lineRef, {'lock': null});
 
-      // clear user lock doc if it matches this line
+      // Clear user lock doc if it matches this line
       final ul = await tx.get(userLockRef);
       if (ul.exists) {
         final ud = ul.data() ?? <String, dynamic>{};
@@ -168,14 +181,21 @@ class TransferLinesRepository {
     });
   }
 
-  /// C5: Race-free increment that also validates barcode->article
+  /// Validates barcode via barcode_index/{barcode} -> article and increments qtyPicked by +1.
+  /// Transaction:
+  /// - verify barcode maps to expectedArticle
+  /// - verify lock exists, owned by caller, and not expired
+  /// - verify qtyPicked < qtyPlanned
+  /// - update qtyPicked += 1
+  /// - optionally auto-release lock when complete (also removes user lock doc)
   Future<void> validateAndIncrementPicked({
     required String transferId,
     required String lineId,
     required String expectedArticle,
     required String barcode,
     required String userId,
-    required UserRole role,
+    required UserRole
+    role, // kept for API symmetry; not required by MVP logic here
     bool autoReleaseOnComplete = true,
   }) async {
     final lineRef = _lineDoc(transferId, lineId);
@@ -183,7 +203,7 @@ class TransferLinesRepository {
     final barcodeRef = _barcodeIndexDoc(barcode);
 
     await _db.runTransaction((tx) async {
-      // barcode -> article
+      // 1) barcode -> article
       final barcodeSnap = await tx.get(barcodeRef);
       if (!barcodeSnap.exists) {
         throw BarcodeMismatchException('Unknown barcode');
@@ -193,15 +213,20 @@ class TransferLinesRepository {
         throw BarcodeMismatchException('Barcode mismatch');
       }
 
+      // 2) read line and validate lock
       final lineSnap = await tx.get(lineRef);
       if (!lineSnap.exists) throw Exception('Line not found');
       final data = lineSnap.data() ?? <String, dynamic>{};
 
       final lock = TransferLineLock.fromMap(data['lock']);
       if (lock == null) throw NotLockOwnerException();
-      if (lock.isExpired) throw LockExpiredException();
       if (lock.userId != userId) throw NotLockOwnerException();
 
+      final now = DateTime.now();
+      final expired = lock.expiresAt.isBefore(now.subtract(_clockSkewGrace));
+      if (expired) throw LockExpiredException();
+
+      // 3) qty rules
       final planned = (data['qtyPlanned'] as num?)?.toInt() ?? 0;
       final picked = (data['qtyPicked'] as num?)?.toInt() ?? 0;
 
@@ -210,7 +235,7 @@ class TransferLinesRepository {
       final nextPicked = picked + 1;
       tx.update(lineRef, {'qtyPicked': nextPicked});
 
-      // Optional: auto-release lock when complete
+      // 4) optional auto-release when complete
       if (autoReleaseOnComplete && nextPicked >= planned) {
         tx.update(lineRef, {'lock': null});
 

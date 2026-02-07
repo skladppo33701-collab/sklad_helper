@@ -50,7 +50,7 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
             role: role,
           );
     } catch (_) {
-      // best-effort release; ignore errors to keep UI responsive
+      // best-effort
     }
   }
 
@@ -67,10 +67,9 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
 
     setState(() => _busyLineId = line.lineId);
 
-    bool shouldRelease = false; // only release in specific failure cases
+    bool shouldRelease = false;
 
     try {
-      // a) acquire lock (only if not already locked by me)
       if (needsLock) {
         await ref
             .read(transferLinesRepositoryProvider)
@@ -83,20 +82,17 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
 
       if (!mounted) return;
 
-      // b) scan
       final String? scanned = await Navigator.of(context).push<String>(
         MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
       );
 
       if (!mounted) return;
 
-      // cancel => release lock
       if (scanned == null) {
         shouldRelease = true;
         return;
       }
 
-      // c) validate barcode format (EAN-8 / EAN-13)
       final validation = BarcodeValidator.validate(scanned);
       if (!validation.ok) {
         shouldRelease = true;
@@ -106,7 +102,6 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
         return;
       }
 
-      // d) validate barcode -> article and increment qtyPicked (+1) in transaction
       await ref
           .read(transferLinesRepositoryProvider)
           .validateAndIncrementPicked(
@@ -121,9 +116,6 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
 
       if (!mounted) return;
 
-      // Success:
-      // - do NOT release lock here.
-      // - repo will auto-release if line becomes complete.
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('OK')), // TODO(l10n)
       );
@@ -140,7 +132,6 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
         const SnackBar(content: Text('Already complete')), // TODO(l10n)
       );
     } on AlreadyHoldingLockException catch (e) {
-      // user has another active lock in this transfer
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Already locked: ${e.lineId}')), // TODO(l10n)
@@ -151,19 +142,16 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
         SnackBar(content: Text('Locked by ${e.lockUserId}')), // TODO(l10n)
       );
     } on LockExpiredException {
-      // lock expired => allow retry (do not force release)
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lock expired, retry.')), // TODO(l10n)
       );
     } on NotLockOwnerException {
-      // treat as retry needed; do not attempt release (repo may throw)
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lock required, retry.')), // TODO(l10n)
       );
     } catch (e) {
-      // unknown error: keep lock (safer), user can Cancel manually
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')), // TODO(l10n)
@@ -193,7 +181,6 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
             return const Center(child: Text('No lines')); // TODO(l10n)
           }
 
-          // group by category
           final grouped = <String, List<TransferLine>>{};
           for (final l in lines) {
             (grouped[l.category.isEmpty ? '—' : l.category] ??= []).add(l);
@@ -310,6 +297,8 @@ class _LineTile extends StatelessWidget {
     final lockedByOther = uid != null && isLockedByOther(line, uid);
     final lockedByMe = uid != null && isLockedByMe(line, uid);
 
+    final lockedBy = lockedByOther ? (line.lock?.userId ?? '') : '';
+
     final isBusy = busyLineId == line.lineId;
     final disablePrimary = completed || lockedByOther || isBusy || uid == null;
 
@@ -319,8 +308,30 @@ class _LineTile extends StatelessWidget {
 
     return ListTile(
       title: Text('${line.article} — ${line.name}'),
-      subtitle: Text(
-        'Planned: ${line.qtyPlanned} | Picked: ${line.qtyPicked}', // TODO(l10n) (details only)
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Planned: ${line.qtyPlanned} | Picked: ${line.qtyPicked}', // TODO(l10n)
+          ),
+          if (lockedByOther)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_outline, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    lockedBy.isNotEmpty
+                        ? 'Locked by $lockedBy'
+                        : 'Locked by other', // TODO(l10n)
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
