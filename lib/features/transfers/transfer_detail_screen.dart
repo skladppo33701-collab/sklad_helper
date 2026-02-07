@@ -27,8 +27,11 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
 
     setState(() => _busyLineId = line.lineId);
 
+    // inside _prepareLine(TransferLine line) just adjust try/catch + calls:
+
+    final role = ref.read(currentRoleProvider);
+
     try {
-      // 1) Acquire lock
       await ref
           .read(transferLinesRepositoryProvider)
           .tryAcquireLock(
@@ -37,27 +40,8 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
             userId: uid,
           );
 
-      if (!mounted) return;
+      // scan + validate format...
 
-      // 2) Scan
-      final scanned = await Navigator.of(context).push<String>(
-        MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
-      );
-
-      if (!mounted) return;
-
-      if (scanned == null) return;
-
-      // 3) Validate barcode format (EAN-8/13)
-      final validation = BarcodeValidator.validate(scanned);
-      if (!validation.ok) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(validation.error!)));
-        return;
-      }
-
-      // 4) Validate barcode -> article via barcode_index, then increment picked (transaction)
       await ref
           .read(transferLinesRepositoryProvider)
           .validateAndIncrementPicked(
@@ -66,37 +50,39 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
             expectedArticle: line.article,
             barcode: scanned,
             userId: uid,
+            role: role,
           );
 
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('OK'))); // TODO(l10n)
-    } on LockDeniedException catch (e) {
+    } on AlreadyHoldingLockException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
-    } on BarcodeMismatchException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Already locked: ${e.lineId}')), // TODO(l10n)
+      );
+    } on LockTakenException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Locked by ${e.lockUserId}')), // TODO(l10n)
+      );
+    } on LockExpiredException {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e'))); // TODO(l10n)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lock expired, retry.')), // TODO(l10n)
+      );
     } finally {
+      // best-effort release (owner/expired rules handled in repo)
       final uid2 = ref.read(firebaseAuthProvider).currentUser?.uid;
       if (uid2 != null) {
-        // best-effort lock release (no-op if not owner)
         await ref
             .read(transferLinesRepositoryProvider)
             .releaseLock(
               transferId: widget.transferId,
               lineId: line.lineId,
               userId: uid2,
+              role: role,
             );
       }
       if (mounted) setState(() => _busyLineId = null);
