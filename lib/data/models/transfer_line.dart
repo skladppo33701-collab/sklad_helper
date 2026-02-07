@@ -1,38 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TransferLineLock {
+  const TransferLineLock({required this.userId, required this.expiresAt});
+
   final String userId;
   final DateTime expiresAt;
 
-  const TransferLineLock({required this.userId, required this.expiresAt});
+  bool get isExpired => expiresAt.isBefore(DateTime.now());
 
-  static TransferLineLock? fromMap(Object? raw) {
-    if (raw is! Map<String, dynamic>) return null;
-    final userId = raw['userId'] as String?;
-    final ts = raw['expiresAt'];
-    if (userId == null || ts is! Timestamp) return null;
-    return TransferLineLock(userId: userId, expiresAt: ts.toDate());
+  static TransferLineLock? fromMap(dynamic value) {
+    if (value == null || value is! Map) return null;
+    final userId = value['userId'];
+    final expiresAt = value['expiresAt'];
+
+    if (userId is! String || userId.isEmpty) return null;
+    if (expiresAt is! Timestamp) return null;
+
+    return TransferLineLock(userId: userId, expiresAt: expiresAt.toDate());
   }
 
   Map<String, dynamic> toMap() => {
     'userId': userId,
     'expiresAt': Timestamp.fromDate(expiresAt),
   };
-
-  bool get isExpired => DateTime.now().isAfter(expiresAt);
 }
 
 class TransferLine {
-  final String lineId; // doc id
-  final String article;
-  final String name;
-  final String category;
-  final int qtyPlanned;
-  final int qtyPicked;
-  final TransferLineLock? lock;
-
   const TransferLine({
-    required this.lineId,
+    required this.id,
     required this.article,
     required this.name,
     required this.category,
@@ -41,16 +36,27 @@ class TransferLine {
     required this.lock,
   });
 
-  static TransferLine fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final d = doc.data() ?? <String, dynamic>{};
+  final String id;
+  final String article;
+  final String name;
+  final String category;
+  final int qtyPlanned;
+  final int qtyPicked;
+  final TransferLineLock? lock;
+
+  bool get isCompleted => qtyPicked >= qtyPlanned;
+
+  factory TransferLine.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data() ?? const <String, dynamic>{};
+
     return TransferLine(
-      lineId: doc.id,
-      article: (d['article'] as String?) ?? '',
-      name: (d['name'] as String?) ?? '',
-      category: (d['category'] as String?) ?? '',
-      qtyPlanned: (d['qtyPlanned'] as num?)?.toInt() ?? 0,
-      qtyPicked: (d['qtyPicked'] as num?)?.toInt() ?? 0,
-      lock: TransferLineLock.fromMap(d['lock']),
+      id: doc.id,
+      article: (data['article'] as String?) ?? '',
+      name: (data['name'] as String?) ?? '',
+      category: (data['category'] as String?) ?? '',
+      qtyPlanned: (data['qtyPlanned'] as num?)?.toInt() ?? 0,
+      qtyPicked: (data['qtyPicked'] as num?)?.toInt() ?? 0,
+      lock: TransferLineLock.fromMap(data['lock']),
     );
   }
 }

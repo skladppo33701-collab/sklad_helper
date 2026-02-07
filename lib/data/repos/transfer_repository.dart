@@ -77,21 +77,16 @@ class TransferRepository {
       'createdAt': FieldValue.serverTimestamp(),
       'createdBy': createdByUid,
       'status': 'new',
-      // optional stage timestamps
       'pickedAt': null,
       'checkedAt': null,
       'doneAt': null,
       'updatedAt': FieldValue.serverTimestamp(),
+      'updatedBy': createdByUid,
     });
     return ref.id;
   }
 
-  /// Status update MUST be transaction-based, stale-safe, role-gated.
-  ///
-  /// - read transfer
-  /// - ensure current status == from (stale write protection)
-  /// - validate transition (role-aware)
-  /// - update status + updatedAt + stage timestamp for target status
+  /// Transaction-based, stale-safe status update.
   Future<void> updateStatus({
     required String transferId,
     required String from,
@@ -132,6 +127,7 @@ class TransferRepository {
       final updates = <String, dynamic>{
         'status': to,
         'updatedAt': FieldValue.serverTimestamp(),
+        'updatedBy': byUid,
       };
 
       if (to == 'picked') {
@@ -143,12 +139,6 @@ class TransferRepository {
       }
 
       tx.update(ref, updates);
-
-      // Optional (NOT realtime): could append event here, but MVP says events are NOT realtime;
-      // still allowed to write events, but do not stream them. Omit for now to minimize writes.
-      // If you add events later, write a single small event doc here.
-      // (No-op)
-      (void,) byUid;
     });
   }
 
