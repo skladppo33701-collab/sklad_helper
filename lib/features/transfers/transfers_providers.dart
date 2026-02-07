@@ -15,13 +15,20 @@ final transferLinesRepositoryProvider = Provider<TransferLinesRepository>((
   return TransferLinesRepository(ref.watch(firestoreProvider));
 });
 
-// ✅ Fix: Provide the missing transfersStreamProvider used by TransfersListScreen.
+// List screen: stream ONLY transfers
 final transfersStreamProvider = StreamProvider<List<Transfer>>((ref) {
   return ref.watch(transferRepositoryProvider).watchTransfers(limit: 50);
 });
 
-// Sprint 3: lines stream ONLY inside detail screen (autoDispose).
+// Details screen: stream ONLY lines while open
 final transferLinesProvider = StreamProvider.autoDispose
     .family<List<TransferLine>, String>((ref, transferId) {
       return ref.watch(transferLinesRepositoryProvider).watchLines(transferId);
     });
+
+// ✅ Optional recommended: stream a SINGLE transfer doc while details open
+final transferDocProvider = StreamProvider.autoDispose.family<Transfer, String>(
+  (ref, transferId) {
+    return ref.watch(transferRepositoryProvider).watchTransfer(transferId);
+  },
+);

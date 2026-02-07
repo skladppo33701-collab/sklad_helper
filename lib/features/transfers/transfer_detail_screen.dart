@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/router/providers.dart';
+import '../../data/models/transfer.dart';
 import '../../data/models/transfer_line.dart';
 import '../../data/repos/transfer_lines_repository.dart';
 import 'transfers_providers.dart';
@@ -33,6 +34,21 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
     return lock.userId == myUid;
   }
 
+  String _statusLabel(TransferStatus s) {
+    switch (s) {
+      case TransferStatus.new_:
+        return 'New'; // TODO(l10n)
+      case TransferStatus.picking:
+        return 'In progress'; // TODO(l10n)
+      case TransferStatus.picked:
+        return 'Picked'; // TODO(l10n)
+      case TransferStatus.checking:
+        return 'Checking'; // TODO(l10n)
+      case TransferStatus.done:
+        return 'Done'; // TODO(l10n)
+    }
+  }
+
   Future<void> _prepare(TransferLine line) async {
     final uid = _uid;
     if (uid == null) return;
@@ -51,11 +67,6 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Locked by ${e.lockUserId}')), // TODO(l10n)
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')), // TODO(l10n)
       );
     } finally {
       if (mounted) setState(() => _busyLineId = null);
@@ -76,18 +87,12 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
             lineId: line.id,
             userId: uid,
           );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')), // TODO(l10n)
-      );
     } finally {
       if (mounted) setState(() => _busyLineId = null);
     }
   }
 
   Future<void> _scanTemp(TransferLine line) async {
-    // Sprint 3: temporary scan button -> just increments.
     final uid = _uid;
     if (uid == null) return;
     if (_busyLineId != null) return;
@@ -101,28 +106,6 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
             lineId: line.id,
             userId: uid,
           );
-    } on LockExpiredException {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lock expired, prepare again.'),
-        ), // TODO(l10n)
-      );
-    } on NotLockOwnerException {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Prepare first.')), // TODO(l10n)
-      );
-    } on OverPickException {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Already completed.')), // TODO(l10n)
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')), // TODO(l10n)
-      );
     } finally {
       if (mounted) setState(() => _busyLineId = null);
     }
@@ -132,52 +115,81 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
   Widget build(BuildContext context) {
     final uid = _uid;
 
+    // ✅ single transfer doc stream (one listener)
+    final transferAsync = ref.watch(transferDocProvider(widget.transferId));
+
+    // lines stream (allowed only in details screen)
     final linesAsync = ref.watch(transferLinesProvider(widget.transferId));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transfer'), // TODO(l10n)
       ),
-      body: linesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')), // TODO(l10n)
-        data: (lines) {
-          if (lines.isEmpty) {
-            return const Center(child: Text('No lines')); // TODO(l10n)
-          }
-
-          // Group by category
-          final grouped = <String, List<TransferLine>>{};
-          for (final l in lines) {
-            final cat = l.category.isEmpty ? '—' : l.category;
-            (grouped[cat] ??= []).add(l);
-          }
-          final categories = grouped.keys.toList()..sort();
-
-          return ListView.builder(
-            itemCount: categories.length,
-            itemBuilder: (context, i) {
-              final cat = categories[i];
-              final catLines = grouped[cat]!;
-              return ExpansionTile(
-                title: Text(cat),
-                children: [
-                  for (final line in catLines)
-                    _LineTile(
-                      line: line,
-                      myUid: uid,
-                      busy: _busyLineId == line.id,
-                      lockedByMe: uid != null && _lockedByMe(line, uid),
-                      lockedByOther: uid != null && _lockedByOther(line, uid),
-                      onPrepare: () => _prepare(line),
-                      onScan: () => _scanTemp(line),
-                      onRelease: () => _release(line),
+      body: Column(
+        children: [
+          transferAsync.when(
+            loading: () => const LinearProgressIndicator(minHeight: 2),
+            error: (_, _) => const SizedBox(height: 2),
+            data: (t) => Material(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Row(
+                  children: [
+                    Text(
+                      _statusLabel(t.status),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                ],
-              );
-            },
-          );
-        },
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: linesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')), // TODO(l10n)
+              data: (lines) {
+                if (lines.isEmpty) {
+                  return const Center(child: Text('No lines')); // TODO(l10n)
+                }
+
+                final grouped = <String, List<TransferLine>>{};
+                for (final l in lines) {
+                  final cat = l.category.isEmpty ? '—' : l.category;
+                  (grouped[cat] ??= []).add(l);
+                }
+                final categories = grouped.keys.toList()..sort();
+
+                return ListView.builder(
+                  itemCount: categories.length,
+                  itemBuilder: (context, i) {
+                    final cat = categories[i];
+                    final catLines = grouped[cat]!;
+                    return ExpansionTile(
+                      title: Text(cat),
+                      children: [
+                        for (final line in catLines)
+                          _LineTile(
+                            line: line,
+                            myUid: uid,
+                            busy: _busyLineId == line.id,
+                            lockedByMe: uid != null && _lockedByMe(line, uid),
+                            lockedByOther:
+                                uid != null && _lockedByOther(line, uid),
+                            onPrepare: () => _prepare(line),
+                            onScan: () => _scanTemp(line),
+                            onRelease: () => _release(line),
+                          ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -213,14 +225,8 @@ class _LineTile extends StatelessWidget {
         : lockedByMe
         ? 'Locked by me' // TODO(l10n)
         : lockedByOther
-        ? 'Locked' // TODO(l10n)
+        ? 'Locked by other' // TODO(l10n)
         : 'Available'; // TODO(l10n)
-
-    final lockIcon = completed
-        ? Icons.check_circle_outline
-        : lockedByMe || lockedByOther
-        ? Icons.lock_outline
-        : Icons.lock_open;
 
     final canPrepare =
         !completed && !busy && !lockedByOther && !lockedByMe && myUid != null;
@@ -232,7 +238,6 @@ class _LineTile extends StatelessWidget {
       subtitle: Text(
         '${line.qtyPicked} / ${line.qtyPlanned} • $lockLabel',
       ), // TODO(l10n)
-      leading: Icon(lockIcon),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

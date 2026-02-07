@@ -23,10 +23,8 @@ bool isValidStatusTransition({
   required String to,
   required UserRole role,
 }) {
-  // loaders cannot change transfer status
   if (role == UserRole.loader) return false;
 
-  // forward-only transitions
   const allowed = <String, Set<String>>{
     'new': {'picking'},
     'picking': {'picked'},
@@ -35,7 +33,6 @@ bool isValidStatusTransition({
     'done': <String>{},
   };
 
-  // optional fast-close: admin/storekeeper can do new->done
   final canFastClose = (role == UserRole.admin || role == UserRole.storekeeper);
   if (canFastClose && from == 'new' && to == 'done') return true;
 
@@ -56,6 +53,14 @@ class TransferRepository {
         .limit(limit)
         .snapshots()
         .map((s) => s.docs.map(Transfer.fromDoc).toList(growable: false));
+  }
+
+  /// Optional (Sprint3 recommended): stream a SINGLE transfer doc while details are open.
+  Stream<Transfer> watchTransfer(String transferId) {
+    return _transfers.doc(transferId).snapshots().map((doc) {
+      if (!doc.exists) throw Exception('Transfer not found');
+      return Transfer.fromDoc(doc);
+    });
   }
 
   Future<Transfer> fetchTransfer(String transferId) async {
@@ -86,7 +91,6 @@ class TransferRepository {
     return ref.id;
   }
 
-  /// Transaction-based, stale-safe status update.
   Future<void> updateStatus({
     required String transferId,
     required String from,
@@ -96,7 +100,6 @@ class TransferRepository {
   }) async {
     final ref = _transfers.doc(transferId);
 
-    // A) fail fast: client-side guard
     if (!isValidStatusTransition(from: from, to: to, role: role)) {
       throw InvalidStatusTransitionException(
         'Invalid transition: $from -> $to',
@@ -110,14 +113,12 @@ class TransferRepository {
       final data = snap.data() ?? <String, dynamic>{};
       final current = (data['status'] as String?) ?? 'new';
 
-      // stale write protection
       if (current != from) {
         throw StaleTransferStatusException(
           'Stale status. Current=$current, expected=$from',
         );
       }
 
-      // B) guard again inside transaction (defense in depth)
       if (!isValidStatusTransition(from: current, to: to, role: role)) {
         throw InvalidStatusTransitionException(
           'Invalid transition: $current -> $to',
@@ -127,8 +128,10 @@ class TransferRepository {
       final updates = <String, dynamic>{
         'status': to,
         'updatedAt': FieldValue.serverTimestamp(),
-        'updatedBy': byUid,
       };
+
+      // ✅ Use byUid (fix analyzer + useful audit field)
+      updates['updatedBy'] = byUid;
 
       if (to == 'picked') {
         updates['pickedAt'] = FieldValue.serverTimestamp();
@@ -146,7 +149,6 @@ class TransferRepository {
     await _transfers.doc(transferId).delete();
   }
 
-  /// Events are NOT realtime: get() page with pagination.
   Future<List<TransferEvent>> fetchEventsPage({
     required String transferId,
     int limit = 30,
