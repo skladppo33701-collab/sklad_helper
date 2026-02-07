@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../app/router/providers.dart';
-import '../../data/models/transfer.dart';
 import '../../data/models/transfer_line.dart';
 import '../../data/repos/transfer_lines_repository.dart';
+import 'transfer_picking_controller.dart';
 import 'transfers_providers.dart';
 
 class TransferDetailScreen extends ConsumerStatefulWidget {
@@ -16,8 +17,6 @@ class TransferDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
-  String? _busyLineId;
-
   String? get _uid => ref.read(firebaseAuthProvider).currentUser?.uid;
 
   bool _lockedByOther(TransferLine line, String myUid) {
@@ -34,162 +33,115 @@ class _TransferDetailScreenState extends ConsumerState<TransferDetailScreen> {
     return lock.userId == myUid;
   }
 
-  String _statusLabel(TransferStatus s) {
-    switch (s) {
-      case TransferStatus.new_:
-        return 'New'; // TODO(l10n)
-      case TransferStatus.picking:
-        return 'In progress'; // TODO(l10n)
-      case TransferStatus.picked:
-        return 'Picked'; // TODO(l10n)
-      case TransferStatus.checking:
-        return 'Checking'; // TODO(l10n)
-      case TransferStatus.done:
-        return 'Done'; // TODO(l10n)
-    }
-  }
-
-  Future<void> _prepare(TransferLine line) async {
-    final uid = _uid;
-    if (uid == null) return;
-    if (_busyLineId != null) return;
-
-    setState(() => _busyLineId = line.id);
-    try {
-      await ref
-          .read(transferLinesRepositoryProvider)
-          .acquireLock(
-            transferId: widget.transferId,
-            lineId: line.id,
-            userId: uid,
-          );
-    } on LockTakenException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Locked by ${e.lockUserId}')), // TODO(l10n)
-      );
-    } finally {
-      if (mounted) setState(() => _busyLineId = null);
-    }
-  }
-
-  Future<void> _release(TransferLine line) async {
-    final uid = _uid;
-    if (uid == null) return;
-    if (_busyLineId != null) return;
-
-    setState(() => _busyLineId = line.id);
-    try {
-      await ref
-          .read(transferLinesRepositoryProvider)
-          .releaseLock(
-            transferId: widget.transferId,
-            lineId: line.id,
-            userId: uid,
-          );
-    } finally {
-      if (mounted) setState(() => _busyLineId = null);
-    }
-  }
-
-  Future<void> _scanTemp(TransferLine line) async {
-    final uid = _uid;
-    if (uid == null) return;
-    if (_busyLineId != null) return;
-
-    setState(() => _busyLineId = line.id);
-    try {
-      await ref
-          .read(transferLinesRepositoryProvider)
-          .incrementPicked(
-            transferId: widget.transferId,
-            lineId: line.id,
-            userId: uid,
-          );
-    } finally {
-      if (mounted) setState(() => _busyLineId = null);
-    }
+  void _snack(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   @override
   Widget build(BuildContext context) {
     final uid = _uid;
-
-    // ✅ single transfer doc stream (one listener)
-    final transferAsync = ref.watch(transferDocProvider(widget.transferId));
-
-    // lines stream (allowed only in details screen)
     final linesAsync = ref.watch(transferLinesProvider(widget.transferId));
+    final pickingCtrl = ref.watch(transferPickingControllerProvider);
+    final picking = ref.read(transferPickingControllerProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transfer'), // TODO(l10n)
       ),
-      body: Column(
-        children: [
-          transferAsync.when(
-            loading: () => const LinearProgressIndicator(minHeight: 2),
-            error: (_, _) => const SizedBox(height: 2),
-            data: (t) => Material(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                child: Row(
-                  children: [
-                    Text(
-                      _statusLabel(t.status),
-                      style: Theme.of(context).textTheme.titleMedium,
+      body: linesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')), // TODO(l10n)
+        data: (lines) {
+          if (lines.isEmpty) {
+            return const Center(child: Text('No lines')); // TODO(l10n)
+          }
+
+          // Group by category
+          final grouped = <String, List<TransferLine>>{};
+          for (final l in lines) {
+            final cat = l.category.isEmpty ? '—' : l.category;
+            (grouped[cat] ??= []).add(l);
+          }
+          final cats = grouped.keys.toList()..sort();
+
+          return ListView.builder(
+            itemCount: cats.length,
+            itemBuilder: (context, i) {
+              final cat = cats[i];
+              final catLines = grouped[cat]!;
+              return ExpansionTile(
+                title: Text(cat),
+                children: [
+                  for (final line in catLines)
+                    _LineTile(
+                      line: line,
+                      myUid: uid,
+                      controllerBusy: pickingCtrl.isLoading,
+                      lockedByMe: uid != null && _lockedByMe(line, uid),
+                      lockedByOther: uid != null && _lockedByOther(line, uid),
+                      onPrepare: uid == null
+                          ? null
+                          : () async {
+                              try {
+                                await picking.prepareLine(
+                                  transferId: widget.transferId,
+                                  lineId: line.id,
+                                );
+                                _snack('Prepared'); // TODO(l10n)
+                              } catch (e) {
+                                _snack('$e'); // TODO(l10n)
+                              }
+                            },
+                      onCancel: uid == null
+                          ? null
+                          : () async {
+                              try {
+                                await picking.cancelLine(
+                                  transferId: widget.transferId,
+                                  lineId: line.id,
+                                );
+                                _snack('Cancelled'); // TODO(l10n)
+                              } catch (e) {
+                                _snack('$e'); // TODO(l10n)
+                              }
+                            },
+                      onScan: uid == null
+                          ? null
+                          : () async {
+                              try {
+                                await picking.scanAndPick(
+                                  context,
+                                  transferId: widget.transferId,
+                                  lineId: line.id,
+                                  expectedArticle: line.article,
+                                );
+                                _snack('OK'); // TODO(l10n)
+                              } on ScanCancelledException {
+                                // Don’t auto release here; user has explicit Cancel.
+                              } on UnknownBarcodeException {
+                                _snack('Unknown barcode'); // TODO(l10n)
+                              } on WrongItemException {
+                                _snack('Wrong item'); // TODO(l10n)
+                              } on FormatException catch (_) {
+                                _snack('Invalid barcode'); // TODO(l10n)
+                              } on LockExpiredException {
+                                _snack(
+                                  'Lock expired. Prepare again.',
+                                ); // TODO(l10n)
+                              } on NotLockOwnerException {
+                                _snack('Prepare first.'); // TODO(l10n)
+                              } on OverPickException {
+                                _snack('Already completed.'); // TODO(l10n)
+                              } catch (e) {
+                                _snack('Error: $e'); // TODO(l10n)
+                              }
+                            },
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: linesAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')), // TODO(l10n)
-              data: (lines) {
-                if (lines.isEmpty) {
-                  return const Center(child: Text('No lines')); // TODO(l10n)
-                }
-
-                final grouped = <String, List<TransferLine>>{};
-                for (final l in lines) {
-                  final cat = l.category.isEmpty ? '—' : l.category;
-                  (grouped[cat] ??= []).add(l);
-                }
-                final categories = grouped.keys.toList()..sort();
-
-                return ListView.builder(
-                  itemCount: categories.length,
-                  itemBuilder: (context, i) {
-                    final cat = categories[i];
-                    final catLines = grouped[cat]!;
-                    return ExpansionTile(
-                      title: Text(cat),
-                      children: [
-                        for (final line in catLines)
-                          _LineTile(
-                            line: line,
-                            myUid: uid,
-                            busy: _busyLineId == line.id,
-                            lockedByMe: uid != null && _lockedByMe(line, uid),
-                            lockedByOther:
-                                uid != null && _lockedByOther(line, uid),
-                            onPrepare: () => _prepare(line),
-                            onScan: () => _scanTemp(line),
-                            onRelease: () => _release(line),
-                          ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -199,22 +151,23 @@ class _LineTile extends StatelessWidget {
   const _LineTile({
     required this.line,
     required this.myUid,
-    required this.busy,
+    required this.controllerBusy,
     required this.lockedByMe,
     required this.lockedByOther,
     required this.onPrepare,
     required this.onScan,
-    required this.onRelease,
+    required this.onCancel,
   });
 
   final TransferLine line;
   final String? myUid;
-  final bool busy;
+  final bool controllerBusy;
   final bool lockedByMe;
   final bool lockedByOther;
-  final VoidCallback onPrepare;
-  final VoidCallback onScan;
-  final VoidCallback onRelease;
+
+  final VoidCallback? onPrepare;
+  final VoidCallback? onScan;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -228,21 +181,19 @@ class _LineTile extends StatelessWidget {
         ? 'Locked by other' // TODO(l10n)
         : 'Available'; // TODO(l10n)
 
+    final disableAll = controllerBusy || myUid == null;
     final canPrepare =
-        !completed && !busy && !lockedByOther && !lockedByMe && myUid != null;
-    final canScan = !completed && !busy && lockedByMe && myUid != null;
-    final canRelease = !completed && !busy && lockedByMe && myUid != null;
+        !disableAll && !completed && !lockedByMe && !lockedByOther;
+    final canScan = !disableAll && !completed && lockedByMe;
+    final canCancel = !disableAll && !completed && lockedByMe;
 
     return ListTile(
       title: Text(line.name.isEmpty ? line.article : line.name),
       subtitle: Text(
-        '${line.qtyPicked} / ${line.qtyPlanned} • $lockLabel',
+        '${line.article} • ${line.qtyPicked}/${line.qtyPlanned} • $lockLabel',
       ), // TODO(l10n)
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (completed)
-            Container(
+      trailing: completed
+          ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -253,25 +204,26 @@ class _LineTile extends StatelessWidget {
                 style: Theme.of(context).textTheme.labelSmall,
               ), // TODO(l10n)
             )
-          else ...[
-            if (canRelease)
-              IconButton(
-                onPressed: onRelease,
-                tooltip: 'Release', // TODO(l10n)
-                icon: const Icon(Icons.close),
-              ),
-            FilledButton(
-              onPressed: canPrepare ? onPrepare : null,
-              child: const Text('Prepare'), // TODO(l10n)
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (lockedByMe)
+                  IconButton(
+                    onPressed: canCancel ? onCancel : null,
+                    tooltip: 'Cancel', // TODO(l10n)
+                    icon: const Icon(Icons.close),
+                  ),
+                FilledButton(
+                  onPressed: canPrepare ? onPrepare : null,
+                  child: const Text('Prepare'), // TODO(l10n)
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: canScan ? onScan : null,
+                  child: const Text('Scan'), // TODO(l10n)
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              onPressed: canScan ? onScan : null,
-              child: const Text('Scan'), // TODO(l10n)
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

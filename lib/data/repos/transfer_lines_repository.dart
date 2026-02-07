@@ -99,6 +99,7 @@ class TransferLinesRepository {
     required String transferId,
     required String lineId,
     required String userId,
+    bool autoReleaseOnComplete = false,
   }) async {
     final ref = _lineRef(transferId, lineId);
 
@@ -118,7 +119,15 @@ class TransferLinesRepository {
 
       if (picked >= planned) throw OverPickException();
 
-      tx.update(ref, {'qtyPicked': picked + 1});
+      final newPicked = picked + 1;
+
+      final updates = <String, dynamic>{'qtyPicked': newPicked};
+
+      if (autoReleaseOnComplete && newPicked >= planned) {
+        updates['lock'] = null;
+      }
+
+      tx.update(ref, updates);
     });
   }
 }

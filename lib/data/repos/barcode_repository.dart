@@ -25,6 +25,16 @@ class BarcodeRepository {
   CollectionReference<Map<String, dynamic>> get _products =>
       _db.collection('products');
 
+  Future<String?> resolveArticleByBarcode(String barcode) async {
+    final snap = await _db.collection('barcode_index').doc(barcode).get();
+    if (!snap.exists) return null;
+
+    final data = snap.data();
+    final article = data?['article'];
+
+    return (article is String && article.isNotEmpty) ? article : null;
+  }
+
   /// Enforces 1:1 mapping via barcode_index/{barcode} doc existence check.
   /// Flow:
   /// - if barcode_index doc exists => conflict
