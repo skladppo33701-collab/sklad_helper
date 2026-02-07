@@ -41,4 +41,5 @@ final userProfileProvider = StreamProvider<UserProfile?>((ref) {
       );
 
   return ref.watch(userRepoProvider).watchProfile(user.uid);
+  // somewhere in your app root build:
 });

@@ -5,6 +5,8 @@ import 'l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'app/router/app_router.dart';
 import 'app/theme/app_theme.dart';
+import 'package:sklad_helper/features/notifications/push_navigation_bootstrap.dart';
+import 'package:sklad_helper/features/notifications/push_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,11 @@ class SkladHelperApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    // запускает регистрацию токена после логина (через repo)
+    ref.watch(pushBootstrapProvider);
+
+    // запуск навигации по push (см. следующий блок)
+    ref.watch(pushNavigationBootstrapProvider);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
