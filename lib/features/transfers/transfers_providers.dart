@@ -20,8 +20,9 @@ final transfersStreamProvider = StreamProvider<List<Transfer>>((ref) {
   return ref.watch(transferRepositoryProvider).watchTransfers(limit: 50);
 });
 
-final transferLinesStreamProvider =
-    StreamProvider.family<List<TransferLine>, String>((ref, transferId) {
+// ✅ FIX: autoDispose to stop streaming when details screen is closed
+final transferLinesStreamProvider = StreamProvider.autoDispose
+    .family<List<TransferLine>, String>((ref, transferId) {
       return ref.watch(transferLinesRepositoryProvider).watchLines(transferId);
     });
 
