@@ -5,8 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/router/providers.dart';
 import '../../utils/barcode_validator.dart';
 import '../catalog/barcode_scanner_screen.dart';
-
-// IMPORTANT: providers live here
 import 'transfers_providers.dart';
 
 class UnknownBarcodeException implements Exception {
@@ -47,11 +45,15 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
     if (uid == null) throw Exception('Not signed in'); // TODO(l10n)
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    try {
       await ref
           .read(transferLinesRepositoryProvider)
           .acquireLock(transferId: transferId, lineId: lineId, userId: uid);
-    });
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow; // ✅ CRITICAL: let UI try/catch handle it
+    }
   }
 
   Future<void> cancelLine({
@@ -62,13 +64,18 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
     if (uid == null) throw Exception('Not signed in'); // TODO(l10n)
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    try {
       await ref
           .read(transferLinesRepositoryProvider)
           .releaseLock(transferId: transferId, lineId: lineId, userId: uid);
-    });
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow; // ✅ propagate
+    }
   }
 
+  /// LOCKED BY ME -> scan -> validate format -> resolve barcode -> increment (+auto-release if complete)
   Future<void> scanAndPick(
     BuildContext context, {
     required String transferId,
@@ -112,7 +119,7 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
 
     // 4) Increment (1 transaction)
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    try {
       await ref
           .read(transferLinesRepositoryProvider)
           .incrementPicked(
@@ -123,6 +130,10 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
           );
 
       HapticFeedback.lightImpact();
-    });
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow; // ✅ propagate so UI doesn't show "OK" on failure
+    }
   }
 }

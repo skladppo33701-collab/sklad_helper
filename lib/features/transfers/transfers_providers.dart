@@ -6,6 +6,7 @@ import '../../data/models/transfer_line.dart';
 import '../../data/repos/barcode_repository.dart';
 import '../../data/repos/transfer_lines_repository.dart';
 import '../../data/repos/transfer_repository.dart';
+import 'transfer_checking_controller.dart';
 import 'transfer_picking_controller.dart';
 
 final transferRepositoryProvider = Provider<TransferRepository>((ref) {
@@ -22,19 +23,32 @@ final barcodeRepositoryProvider = Provider<BarcodeRepository>((ref) {
   return BarcodeRepository(ref.watch(firestoreProvider));
 });
 
-// Transfers list: stream ONLY transfers
+// transfers list: stream ONLY transfers
 final transfersStreamProvider = StreamProvider<List<Transfer>>((ref) {
   return ref.watch(transferRepositoryProvider).watchTransfers(limit: 50);
 });
 
-// Lines: stream ONLY in details while open
+// detail: stream ONLY lines while open
 final transferLinesProvider = StreamProvider.autoDispose
     .family<List<TransferLine>, String>((ref, transferId) {
       return ref.watch(transferLinesRepositoryProvider).watchLines(transferId);
     });
 
-// Controller for picking flow
+// optional: single transfer doc listener while open
+final transferDocProvider = StreamProvider.autoDispose.family<Transfer, String>(
+  (ref, transferId) {
+    return ref.watch(transferRepositoryProvider).watchTransfer(transferId);
+  },
+);
+
+// Sprint4 picking controller
 final transferPickingControllerProvider =
     AutoDisposeAsyncNotifierProvider<TransferPickingController, void>(
       TransferPickingController.new,
+    );
+
+// Sprint5 checking controller
+final transferCheckingControllerProvider =
+    AutoDisposeAsyncNotifierProvider<TransferCheckingController, void>(
+      TransferCheckingController.new,
     );

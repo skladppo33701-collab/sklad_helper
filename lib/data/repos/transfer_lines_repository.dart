@@ -23,6 +23,16 @@ class OverPickException implements Exception {
   String toString() => 'Over-pick not allowed';
 }
 
+class OverCheckException implements Exception {
+  @override
+  String toString() => 'Over-check not allowed';
+}
+
+class NotFullyPickedException implements Exception {
+  @override
+  String toString() => 'Not fully picked';
+}
+
 class TransferLinesRepository {
   TransferLinesRepository(this._db);
   final FirebaseFirestore _db;
@@ -36,7 +46,6 @@ class TransferLinesRepository {
   ) => _linesRef(transferId).doc(lineId);
 
   Stream<List<TransferLine>> watchLines(String transferId) {
-    // Free-tier: allowed only while detail screen is open.
     return _linesRef(transferId)
         .orderBy('category')
         .orderBy('name')
@@ -120,11 +129,108 @@ class TransferLinesRepository {
       if (picked >= planned) throw OverPickException();
 
       final newPicked = picked + 1;
-
       final updates = <String, dynamic>{'qtyPicked': newPicked};
 
       if (autoReleaseOnComplete && newPicked >= planned) {
         updates['lock'] = null;
+      }
+
+      tx.update(ref, updates);
+    });
+  }
+
+  // -------------------------
+  // Sprint 5: checking locks
+  // -------------------------
+
+  Future<void> acquireCheckLock({
+    required String transferId,
+    required String lineId,
+    required String userId,
+    Duration ttl = const Duration(minutes: 5),
+  }) async {
+    final ref = _lineRef(transferId, lineId);
+    final now = DateTime.now();
+    final expiresAt = now.add(ttl);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('Line not found');
+
+      final data = snap.data() ?? <String, dynamic>{};
+      final current = TransferLineLock.fromMap(data['checkedLock']);
+
+      final active = current != null && !current.isExpired;
+      if (active && current.userId != userId) {
+        throw LockTakenException(lockUserId: current.userId);
+      }
+
+      tx.update(ref, {
+        'checkedLock': {
+          'userId': userId,
+          'expiresAt': Timestamp.fromDate(expiresAt),
+        },
+      });
+    });
+  }
+
+  Future<void> releaseCheckLock({
+    required String transferId,
+    required String lineId,
+    required String userId,
+  }) async {
+    final ref = _lineRef(transferId, lineId);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) return;
+
+      final data = snap.data() ?? <String, dynamic>{};
+      final lock = TransferLineLock.fromMap(data['checkedLock']);
+      if (lock == null) return;
+
+      if (lock.userId != userId) {
+        throw NotLockOwnerException();
+      }
+
+      tx.update(ref, {'checkedLock': null});
+    });
+  }
+
+  Future<void> incrementChecked({
+    required String transferId,
+    required String lineId,
+    required String userId,
+    bool autoReleaseOnComplete = true,
+  }) async {
+    final ref = _lineRef(transferId, lineId);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('Line not found');
+
+      final data = snap.data() ?? <String, dynamic>{};
+
+      final planned = (data['qtyPlanned'] as num?)?.toInt() ?? 0;
+      final picked = (data['qtyPicked'] as num?)?.toInt() ?? 0;
+      final checked = (data['qtyChecked'] as num?)?.toInt() ?? 0;
+
+      // MVP: must be fully picked first
+      if (picked < planned) throw NotFullyPickedException();
+
+      final lock = TransferLineLock.fromMap(data['checkedLock']);
+      if (lock == null) throw NotLockOwnerException();
+      if (lock.userId != userId) throw NotLockOwnerException();
+      if (lock.isExpired) throw LockExpiredException();
+
+      if (checked >= planned) throw OverCheckException();
+
+      final newChecked = checked + 1;
+
+      final updates = <String, dynamic>{'qtyChecked': newChecked};
+
+      if (autoReleaseOnComplete && newChecked >= planned) {
+        updates['checkedLock'] = null;
       }
 
       tx.update(ref, updates);
