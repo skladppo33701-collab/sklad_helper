@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../admin/admin_products_screen.dart';
 import '../../app/router/providers.dart';
 import '../../app/theme/locale_controller.dart';
 import '../../data/models/user_profile.dart';
@@ -122,7 +122,33 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               ),
             ),
             const Divider(),
-
+            if (profile?.role == UserRole.admin) ...[
+              // Группируем админские кнопки
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings),
+                title: const Text('Admin: Users'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AdminUsersScreen()),
+                  );
+                },
+              ),
+              // НОВАЯ КНОПКА
+              ListTile(
+                leading: const Icon(Icons.dataset),
+                title: const Text('Admin: Products DB'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AdminProductsScreen(),
+                    ), // Импортируйте экран
+                  );
+                },
+              ),
+            ],
+            const Divider(),
             // ---------------------
             if (profile?.role == UserRole.admin)
               ListTile(
