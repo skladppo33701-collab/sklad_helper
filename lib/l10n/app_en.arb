@@ -46,23 +46,23 @@
   },
   "logout": "Log out",
   "@logout": {
-    "description": "Button text to log out"
+    "description": "Button text to sign out"
   },
   "assignments": "Assignments",
   "@assignments": {
-    "description": "Title for the assignments section"
+    "description": "Tab title for assigned tasks"
   },
-  "tasks": "Tasks",
+  "tasks": "Plan",
   "@tasks": {
-    "description": "Title for the tasks section"
+    "description": "Tab title for planning"
   },
   "profile": "Profile",
   "@profile": {
-    "description": "Title for the profile section"
+    "description": "Tab title for user profile"
   },
   "barcodeAlreadyBound": "Barcode already bound to: {article}",
   "@barcodeAlreadyBound": {
-    "description": "Error message when a barcode is already assigned to another product",
+    "description": "Error message when barcode is duplicate",
     "placeholders": {
       "article": {
         "type": "String",
@@ -72,7 +72,7 @@
   },
   "productNotFound": "Product not found: {article}",
   "@productNotFound": {
-    "description": "Error message when a product cannot be found by article",
+    "description": "Error message when product is missing",
     "placeholders": {
       "article": {
         "type": "String",
@@ -82,35 +82,59 @@
   },
   "labelArticle": "Article",
   "@labelArticle": {
-    "description": "Label for the article field"
+    "description": "Label for product article"
   },
   "labelCategory": "Category",
   "@labelCategory": {
-    "description": "Label for the category field"
+    "description": "Label for product category"
+  },
+  "labelBrand": "Brand",
+  "@labelBrand": {
+    "description": "Label for product brand"
   },
   "labelBarcode": "Barcode",
   "@labelBarcode": {
-    "description": "Label for the barcode field"
+    "description": "Label for barcode field"
+  },
+  "labelName": "Name",
+  "@labelName": {
+    "description": "Label for product name"
+  },
+  "catalogTitle": "Catalog",
+  "@catalogTitle": {
+    "description": "Screen title for catalog"
+  },
+  "searchByArticle": "Search by Name/Article",
+  "@searchByArticle": {
+    "description": "Hint text for search field"
+  },
+  "loadMore": "Load More",
+  "@loadMore": {
+    "description": "Button to load next page"
+  },
+  "listEnd": "End of list",
+  "@listEnd": {
+    "description": "Message shown at the end of pagination"
   },
   "statusBinding": "Binding...",
   "@statusBinding": {
-    "description": "Button text indicating progress"
+    "description": "Status text during binding process"
   },
-  "actionBindBarcode": "Bind barcode",
+  "actionBindBarcode": "Bind Barcode",
   "@actionBindBarcode": {
-    "description": "Button label to start binding"
+    "description": "Button text to bind barcode"
   },
   "errorNotAllowed": "Not allowed.",
   "@errorNotAllowed": {
-    "description": "Error shown when user lacks permissions"
+    "description": "Permission error message"
   },
   "errorGeneric": "Error: {error}",
   "@errorGeneric": {
-    "description": "Generic error message",
+    "description": "Generic error message template",
     "placeholders": {
       "error": {
         "type": "String",
-        "example": "Network failed"
+        "example": "Network error"
       }
     }
   },
@@ -120,7 +144,7 @@
   },
   "errorNotSignedIn": "Not signed in",
   "@errorNotSignedIn": {
-    "description": "Error when user is not authenticated"
+    "description": "Error message when user is not authenticated"
   },
   "scanCancelled": "Scan cancelled",
   "@scanCancelled": {
@@ -128,150 +152,113 @@
   },
   "barcodeUnknown": "Unknown barcode",
   "@barcodeUnknown": {
-    "description": "Error when barcode is not in database"
+    "description": "Error when barcode is not found in db"
   },
-  "checkingNotAllowed": "Checking not allowed",
-  "@checkingNotAllowed": {
-    "description": "Error when checking is forbidden"
-  },
-  "checkingNotFullyPicked": "Items not fully picked yet",
-  "@checkingNotFullyPicked": {
-    "description": "Error trying to check before picking is done"
-  },
-  "checkingWrongItem": "Wrong item. Expected: {expected}, Actual: {actual}",
-  "@checkingWrongItem": {
+  "wrongItem": "Wrong item scanned. Expected: {expected}",
+  "@wrongItem": {
+    "description": "Error when scanned item does not match expected",
     "placeholders": {
       "expected": {
-        "type": "String"
-      },
-      "actual": {
-        "type": "String"
+        "type": "String",
+        "example": "A-123"
       }
     }
   },
-  "checkingNotAllChecked": "Not all items are checked",
-  "@checkingNotAllChecked": {
-    "description": "Error trying to finish transfer before checking all items"
+  "transferTitle": "Transfer",
+  "@transferTitle": {
+    "description": "Screen title for transfer details"
   },
-  "scanTitle": "Scan",
-  "@scanTitle": {
-    "description": "Title for barcode scanner screen"
+  "transferNotFound": "Transfer not found",
+  "@transferNotFound": {
+    "description": "Error message when transfer document is missing"
   },
-  "catalogTitle": "Catalog",
-  "@catalogTitle": {
-    "description": "Title for catalog screen"
+  "listEmpty": "List is empty",
+  "@listEmpty": {
+    "description": "Message shown when list has no items"
   },
-  "searchByArticle": "Search by article (exact)",
-  "@searchByArticle": {
-    "description": "Hint text for search field"
+  "status": "Status",
+  "@status": {
+    "description": "Label for status field"
   },
-  "clearSearch": "Clear",
-  "@clearSearch": {
-    "description": "Tooltip for clear search button"
+  "items": "Items",
+  "@items": {
+    "description": "Label for items count"
   },
-  "loadMore": "Load more",
-  "@loadMore": {
-    "description": "Button to load more items"
-  },
-  "listEnd": "End",
-  "@listEnd": {
-    "description": "Text indicating end of list"
-  },
-  "noBarcode": "NO BARCODE",
-  "@noBarcode": {
-    "description": "Badge text for missing barcode"
-  },
-  "notificationsTitle": "Notifications",
-  "@notificationsTitle": {
-    "description": "Title for notifications screen"
-  },
-  "noNotifications": "No notifications",
-  "@noNotifications": {
-    "description": "Text when notification list is empty"
-  },
-  "productsTitle": "Products",
-  "@productsTitle": {
-    "description": "Title for products screen"
-  },
-  "productsPlaceholder": "Products list (MVP placeholder)",
-  "@productsPlaceholder": {
-    "description": "Placeholder text for products screen"
-  },
-  "errorLineNotFound": "Line not found",
-  "@errorLineNotFound": {
-    "description": "Error when transfer line is missing"
-  },
-  "errorLockedByOther": "Locked by other",
+  "errorLockedByOther": "Locked by another user",
   "@errorLockedByOther": {
-    "description": "Error when line is locked by another user"
+    "description": "Error when item is locked by someone else"
   },
-  "errorAlreadyHoldingLock": "Already holding another lock",
+  "errorAlreadyHoldingLock": "You already have an active task",
   "@errorAlreadyHoldingLock": {
-    "description": "Error when user tries to lock multiple lines"
+    "description": "Error when user tries to take another task"
   },
   "errorLockExpired": "Lock expired",
   "@errorLockExpired": {
-    "description": "Error when lock time has passed"
+    "description": "Error when lock time ran out"
   },
-  "errorNotLockOwner": "Not lock owner",
+  "errorNotLockOwner": "You are not the owner of this lock",
   "@errorNotLockOwner": {
-    "description": "Error when operation performed without lock ownership"
+    "description": "Error when trying to modify lock owned by others"
   },
-  "errorOverPick": "Over-pick prevented",
+  "errorOverPick": "Cannot pick more than planned",
   "@errorOverPick": {
-    "description": "Error when trying to pick more than planned"
+    "description": "Error when picking exceeds quantity"
   },
-  "errorOverCheck": "Over-check prevented",
+  "errorOverCheck": "Cannot check more than planned",
   "@errorOverCheck": {
-    "description": "Error when trying to check more than planned"
+    "description": "Error when checking exceeds quantity"
   },
-  "valEmpty": "Barcode is empty",
+  "valEmpty": "Empty barcode",
   "@valEmpty": {
-    "description": "Validation error"
+    "description": "Validation error for empty input"
   },
   "valNumericOnly": "Digits only (EAN-8 / EAN-13)",
   "@valNumericOnly": {
-    "description": "Validation error"
+    "description": "Validation error for non-numeric input"
   },
   "valChecksum": "Invalid EAN-13 checksum",
   "@valChecksum": {
-    "description": "Validation error"
+    "description": "Validation error for invalid checksum"
   },
   "valLength": "Only EAN-8 (8 digits) or EAN-13 (13 digits)",
   "@valLength": {
-    "description": "Validation error"
+    "description": "Validation error for invalid length"
   },
   "statusNew": "New",
   "@statusNew": {
-    "description": "Transfer status New"
+    "description": "Status label: New"
   },
-  "statusPicking": "In progress",
+  "statusPicking": "Picking",
   "@statusPicking": {
-    "description": "Transfer status Picking"
+    "description": "Status label: Picking"
   },
   "statusPicked": "Picked",
   "@statusPicked": {
-    "description": "Transfer status Picked"
+    "description": "Status label: Picked"
   },
   "statusChecking": "Checking",
   "@statusChecking": {
-    "description": "Transfer status Checking"
+    "description": "Status label: Checking"
   },
   "statusDone": "Done",
   "@statusDone": {
-    "description": "Transfer status Done"
+    "description": "Status label: Done"
   },
-  "btnStartChecking": "Start checking",
+  "btnStartChecking": "Start Checking",
   "@btnStartChecking": {
     "description": "Button to start checking process"
   },
   "btnFinish": "Finish",
   "@btnFinish": {
-    "description": "Button to finish transfer"
+    "description": "Button to finish process"
+  },
+  "btnFinishPicking": "Finish Picking",
+  "@btnFinishPicking": {
+    "description": "Button to finish picking phase"
   },
   "btnPrepare": "Prepare",
   "@btnPrepare": {
-    "description": "Button to acquire lock on line"
+    "description": "Button to prepare item (lock)"
   },
   "btnScan": "Scan",
   "@btnScan": {
@@ -283,30 +270,34 @@
   },
   "btnCheck": "Check",
   "@btnCheck": {
-    "description": "Button to perform check"
+    "description": "Button to verify item"
   },
-  "btnCancelCheck": "Cancel check",
+  "btnCancelCheck": "Cancel Check",
   "@btnCancelCheck": {
-    "description": "Button to cancel check action"
+    "description": "Button to cancel check"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Button label Save"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Button label Delete"
+  },
+  "confirmDelete": "Are you sure you want to delete this?",
+  "@confirmDelete": {
+    "description": "Confirmation dialog message"
   },
   "msgCheckingStarted": "Checking started",
   "@msgCheckingStarted": {
     "description": "Toast message"
   },
-  "msgFinishBlocked": "Finish blocked: not all checked",
+  "msgFinishBlocked": "Cannot finish: not all items checked",
   "@msgFinishBlocked": {
-    "description": "Toast message"
+    "description": "Error message when trying to finish incomplete check"
   },
   "msgFinished": "Finished",
   "@msgFinished": {
-    "description": "Toast message"
-  },
-  "msgPrepared": "Prepared",
-  "@msgPrepared": {
-    "description": "Toast message"
-  },
-  "msgCancelled": "Cancelled",
-  "@msgCancelled": {
     "description": "Toast message"
   },
   "msgOk": "OK",
@@ -357,16 +348,56 @@
   "@subLockedCheck": {
     "description": "Subtitle indicating check lock"
   },
-  "labelNoLines": "No lines",
-  "@labelNoLines": {
-    "description": "Label when list is empty"
+  "scanTitle": "Scan Barcode",
+  "@scanTitle": {
+    "description": "Title for scanner screen"
   },
-  "labelDoneBadge": "DONE",
-  "@labelDoneBadge": {
-    "description": "Badge text for completed items"
+  "notificationsTitle": "Notifications",
+  "@notificationsTitle": {
+    "description": "Title for notifications screen"
   },
-  "transferDetails": "Transfer Details",
-  "@transferDetails": {
-    "description": "Title for transfer detail screen"
+  "noNotifications": "No notifications",
+  "@noNotifications": {
+    "description": "Message when notification list is empty"
+  },
+  "navHome": "Home",
+  "@navHome": {
+    "description": "Bottom navigation label"
+  },
+  "navTransfers": "Transfers",
+  "@navTransfers": {
+    "description": "Bottom navigation label"
+  },
+  "navCatalog": "Catalog",
+  "@navCatalog": {
+    "description": "Bottom navigation label"
+  },
+  "account": "Account",
+  "@account": {
+    "description": "Drawer header title"
+  },
+  "guest": "Guest",
+  "@guest": {
+    "description": "Fallback username"
+  },
+  "active": "Active",
+  "@active": {
+    "description": "User status"
+  },
+  "inactive": "Inactive",
+  "@inactive": {
+    "description": "User status"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language settings tile"
+  },
+  "adminUsers": "Admin: Users",
+  "@adminUsers": {
+    "description": "Admin menu item"
+  },
+  "adminProducts": "Admin: Products DB",
+  "@adminProducts": {
+    "description": "Admin menu item"
   }
 }

@@ -1,61 +1,64 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum TransferStatus { new_, picking, picked, checking, done }
+enum TransferStatus { newTx, picking, picked, checking, done, cancelled }
 
 class Transfer {
   final String transferId;
   final String title;
   final TransferStatus status;
-  final DateTime createdAt;
-  final String from;
-  final String to;
   final int itemsTotal;
   final int pcsTotal;
-  // НОВОЕ ПОЛЕ
-  final bool isDeleted;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String? checkerUid;
 
-  Transfer({
+  const Transfer({
     required this.transferId,
     required this.title,
     required this.status,
-    required this.createdAt,
-    required this.from,
-    required this.to,
-    this.itemsTotal = 0,
-    this.pcsTotal = 0,
-    this.isDeleted = false, // По умолчанию не удален
+    required this.itemsTotal,
+    required this.pcsTotal,
+    this.createdAt,
+    this.updatedAt,
+    this.checkerUid,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'transferId': transferId,
+      'title': title,
+      'status': status.name,
+      'itemsTotal': itemsTotal,
+      'pcsTotal': pcsTotal,
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
+      'updatedAt': updatedAt != null
+          ? Timestamp.fromDate(updatedAt!)
+          : FieldValue.serverTimestamp(),
+      'checkerUid': checkerUid,
+    };
+  }
 
   factory Transfer.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return Transfer(
       transferId: doc.id,
-      title: data['title'] ?? 'Transfer ${doc.id}',
+      title: data['title'] ?? '',
       status: _parseStatus(data['status']),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      from: data['from'] ?? '',
-      to: data['to'] ?? '',
       itemsTotal: (data['itemsTotal'] as num?)?.toInt() ?? 0,
       pcsTotal: (data['pcsTotal'] as num?)?.toInt() ?? 0,
-      // Читаем флаг (если его нет в базе — считаем false)
-      isDeleted: data['isDeleted'] ?? false,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+      checkerUid: data['checkerUid'],
     );
   }
 
-  static TransferStatus _parseStatus(String? s) {
-    switch (s) {
-      case 'new':
-        return TransferStatus.new_;
-      case 'picking':
-        return TransferStatus.picking;
-      case 'picked':
-        return TransferStatus.picked;
-      case 'checking':
-        return TransferStatus.checking;
-      case 'done':
-        return TransferStatus.done;
-      default:
-        return TransferStatus.new_;
-    }
+  static TransferStatus _parseStatus(String? val) {
+    if (val == 'new' || val == 'new_tx') return TransferStatus.newTx;
+    return TransferStatus.values.firstWhere(
+      (e) => e.name == val,
+      orElse: () => TransferStatus.newTx,
+    );
   }
 }

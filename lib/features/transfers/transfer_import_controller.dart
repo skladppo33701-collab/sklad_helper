@@ -1,11 +1,13 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
-
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart'; // для debugPrint
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:spreadsheet_decoder/spreadsheet_decoder.dart';
+
+// Импорт сервиса пушей
+import '../../features/notifications/push_sender_service.dart';
 
 final transferImportProvider = Provider((ref) => TransferImportController(ref));
 
@@ -36,63 +38,58 @@ class TransferImportController {
   }
 
   Future<void> _parseAndSave(Uint8List bytes, String filename) async {
-    final decoder = SpreadsheetDecoder.decodeBytes(bytes, update: true);
-    if (decoder.tables.isEmpty) throw Exception('Файл Excel пуст');
+    final decoder = SpreadsheetDecoder.decodeBytes(bytes);
+    final table = decoder.tables.values.first;
 
-    SpreadsheetTable? table;
-    int headerRowIndex = -1;
+    if (table.rows.isEmpty) throw Exception('Файл пуст');
+
+    // Поиск заголовков
     int colArticle = -1;
     int colName = -1;
     int colQty = -1;
+    int headerRowIndex = -1;
 
-    // Поиск заголовков
-    for (var tableName in decoder.tables.keys) {
-      final t = decoder.tables[tableName]!;
-      for (var i = 0; i < t.maxRows && i < 100; i++) {
-        final row = t.rows[i];
-        int tempArticle = -1;
-        int tempName = -1;
-        int tempQty = -1;
-
-        for (var j = 0; j < row.length; j++) {
-          final val = row[j]?.toString().toLowerCase().trim() ?? '';
-          if (val.contains('артикул')) tempArticle = j;
-          if (val.contains('товар') || val.contains('наименование'))
-            tempName = j;
-          if (val == 'количество' ||
-              (val.contains('количество') && !val.contains('мест')))
-            tempQty = j;
-        }
-
-        if (tempArticle != -1 && tempQty != -1) {
-          headerRowIndex = i;
-          colArticle = tempArticle;
-          colName = tempName;
-          colQty = tempQty;
-          table = t;
-          break;
-        }
+    for (var i = 0; i < table.maxRows && i < 20; i++) {
+      final row = table.rows[i];
+      for (var j = 0; j < row.length; j++) {
+        final val = row[j]?.toString().toLowerCase().trim() ?? '';
+        if (val.contains('артикул') || val.contains('код')) colArticle = j;
+        if (val.contains('номенклатура') ||
+            val.contains('товар') ||
+            val.contains('наименование'))
+          colName = j;
+        if (val == 'количество' ||
+            val == 'кол-во' ||
+            val == 'к-во' ||
+            val == 'остаток')
+          colQty = j;
       }
-      if (table != null) break;
+      if (colArticle != -1 && colName != -1 && colQty != -1) {
+        headerRowIndex = i;
+        break;
+      }
     }
 
-    if (table == null || headerRowIndex == -1) {
-      throw Exception('Не найдены колонки "Артикул" и "Количество"');
+    if (headerRowIndex == -1) {
+      // Фолбэк, если заголовки не найдены (стандарт 1С)
+      colArticle = 0; // A
+      colName = 1; // B
+      colQty = 3; // D
+      headerRowIndex = 0;
     }
 
-    final lines = <Map<String, dynamic>>[];
+    final List<Map<String, dynamic>> lines = [];
     int totalQty = 0;
 
     for (var i = headerRowIndex + 1; i < table.maxRows; i++) {
       final row = table.rows[i];
-      if (row.length <= colQty) continue;
+      if (row.length <= colArticle || row.length <= colQty) continue;
 
-      final rawArticle = row[colArticle];
-      if (rawArticle == null || rawArticle.toString().trim().isEmpty) continue;
+      final article = row[colArticle]?.toString().trim() ?? '';
+      if (article.isEmpty) continue;
 
-      final article = rawArticle.toString().trim();
       String name = 'Без названия';
-      if (colName != -1 && row.length > colName) {
+      if (row.length > colName) {
         name = row[colName]?.toString().trim() ?? 'Без названия';
       }
 
@@ -112,8 +109,7 @@ class TransferImportController {
         lines.add({
           'article': article,
           'name': name,
-          // ВАЖНО: Добавляем category, чтобы работал orderBy('category') в Firestore!
-          'category': '',
+          'category': '', // Для сортировки
           'qtyPlanned': qty,
           'qtyPicked': 0,
           'qtyChecked': 0,
@@ -135,15 +131,31 @@ class TransferImportController {
       'itemsTotal': lines.length,
       'pcsTotal': totalQty,
       'createdAt': FieldValue.serverTimestamp(),
-      'from': 'Excel Import',
-      'isDeleted': false,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
 
     for (var line in lines) {
       final lineRef = transferRef.collection('lines').doc();
-      batch.set(lineRef, {...line, 'lineId': lineRef.id});
+      batch.set(lineRef, {
+        ...line,
+        'id': lineRef.id,
+        'transferId': transferRef.id,
+      });
     }
 
+    // Сохраняем в базу
     await batch.commit();
+
+    // --- ОТПРАВКА ПУШ-УВЕДОМЛЕНИЯ ---
+    try {
+      await PushSenderService().sendNotification(
+        topic: 'staff',
+        title: '📦 Новое задание',
+        body: 'Загружено перемещение: ${filename.replaceAll('.xlsx', '')}',
+      );
+    } catch (e) {
+      debugPrint('Ошибка отправки пуша (Импорт): $e');
+    }
+    // --------------------------------
   }
 }

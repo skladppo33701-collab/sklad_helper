@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../data/models/product.dart';
 import '../catalog/barcode_scanner_screen.dart';
+import '../../app/widgets/danger_dialog.dart'; // <--- 1. ВАЖНЫЙ ИМПОРТ
 
 class AdminProductsScreen extends ConsumerStatefulWidget {
   const AdminProductsScreen({super.key});
@@ -97,28 +98,14 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
   }
 
   Future<void> _deleteAllProducts() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('ОПАСНО: Удалить ВСЮ базу?'),
-        content: const Text(
-          'Вы собираетесь удалить ВСЕ товары. Это действие необратимо.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('УДАЛИТЬ ВСЁ'),
-          ),
-        ],
-      ),
+    // 2. ЗАЩИТА: Используем DangerDialog вместо обычного AlertDialog
+    final confirmed = await DangerDialog.show(
+      context,
+      title: 'ОЧИСТКА БАЗЫ ТОВАРОВ',
+      confirmText: 'УДАЛИТЬ ВСЕ',
     );
 
-    if (confirm != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(const SnackBar(content: Text('Начало удаления...')));
@@ -265,7 +252,6 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
                 return ListView.separated(
                   padding: const EdgeInsets.only(bottom: 80),
                   itemCount: filtered.length,
-                  // Исправлено: _ вместо __
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, i) {
                     final doc = filtered[i];
@@ -314,7 +300,6 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ИСПРАВЛЕНО: InputDecorator вместо DropdownButtonFormField для избежания deprecation
             InputDecorator(
               decoration: const InputDecoration(
                 labelText: 'Категория',
@@ -388,7 +373,6 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
     String selectedBrand = currentBrand;
     bool isCustomBrand = !_defaultBrands.contains(currentBrand);
 
-    // Исправлено: фигурные скобки
     if (isCustomBrand) {
       selectedBrand = 'Другой';
       newBrandCtrl.text = currentBrand;
@@ -403,7 +387,6 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
             final scanned = await Navigator.of(context).push<String>(
               MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
             );
-            // Исправлено: фигурные скобки
             if (scanned != null) {
               setStateDialog(() => barcodeCtrl.text = scanned);
             }
@@ -433,7 +416,6 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // ИСПРАВЛЕНО: InputDecorator вместо DropdownButtonFormField
                   InputDecorator(
                     decoration: const InputDecoration(
                       labelText: 'Категория *',
@@ -448,7 +430,6 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
                           return DropdownMenuItem(value: cat, child: Text(cat));
                         }).toList(),
                         onChanged: (val) {
-                          // Исправлено: фигурные скобки
                           if (val != null) {
                             setStateDialog(() => selectedCategory = val);
                           }
@@ -458,7 +439,6 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // ИСПРАВЛЕНО: InputDecorator вместо DropdownButtonFormField
                   InputDecorator(
                     decoration: const InputDecoration(
                       labelText: 'Бренд *',
@@ -597,6 +577,8 @@ class _AdminProductsScreenState extends ConsumerState<AdminProductsScreen> {
     BuildContext context,
     DocumentReference ref,
   ) async {
+    // 3. (Опционально) Можно добавить защиту и сюда, но пока оставим обычный диалог
+    // для удаления одного товара, чтобы не вводить пароль каждый раз.
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

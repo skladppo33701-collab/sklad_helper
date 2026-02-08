@@ -7,6 +7,16 @@ import '../../utils/barcode_validator.dart';
 import '../catalog/barcode_scanner_screen.dart';
 import 'transfers_providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../data/models/transfer.dart';
+import '../../features/notifications/push_sender_service.dart';
+
+// Определяем провайдер здесь или в transfers_providers.dart
+// Если он уже есть в transfers_providers.dart, этот блок удалите.
+// Если нет, раскомментируйте:
+final transferPickingControllerProvider =
+    AutoDisposeAsyncNotifierProvider<TransferPickingController, void>(() {
+      return TransferPickingController();
+    });
 
 class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
   @override
@@ -52,8 +62,8 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
     }
   }
 
-  Future<void> scanAndPick(
-    BuildContext context, {
+  Future<void> processScan({
+    required BuildContext context,
     required String transferId,
     required String lineId,
     required String expectedArticle,
@@ -61,9 +71,8 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
     final uid = _uid;
     if (uid == null) throw NotSignedInException();
 
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context); // Защита
 
-    // 1) Scan
     final String? scanned = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
     );
@@ -71,13 +80,11 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
     if (scanned == null) throw ScanCancelledException();
     final barcode = scanned.trim();
 
-    // 2) Validate
     final res = BarcodeValidator.validate(barcode, l10n);
     if (!res.ok) {
       throw FormatException(res.error ?? 'Invalid barcode');
     }
 
-    // 3) Resolve
     final resolvedArticle = await ref
         .read(barcodeRepositoryProvider)
         .resolveArticleByBarcode(barcode);
@@ -91,7 +98,6 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
       );
     }
 
-    // 4) Increment
     state = const AsyncLoading();
     try {
       await ref
@@ -104,6 +110,34 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
           );
       HapticFeedback.lightImpact();
       state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> finishPicking(String transferId) async {
+    final uid = _uid;
+    if (uid == null) throw NotSignedInException();
+
+    state = const AsyncLoading();
+    try {
+      await ref
+          .read(transferRepositoryProvider)
+          .updateStatus(transferId, TransferStatus.picked);
+
+      state = const AsyncData(null);
+
+      try {
+        await PushSenderService().sendNotification(
+          topic: 'storekeeper',
+          title: 'Готово к проверке',
+          body: 'Трансфер собран, можно проверять.',
+          data: {'transferId': transferId},
+        );
+      } catch (e) {
+        debugPrint('Ошибка отправки пуша (Сборка): $e');
+      }
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
