@@ -1,39 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../utils/app_exceptions.dart';
 import '../../app/router/providers.dart';
 import '../../utils/barcode_validator.dart';
 import '../catalog/barcode_scanner_screen.dart';
 import 'transfers_providers.dart';
-
-class UnknownBarcodeException implements Exception {
-  @override
-  String toString() => 'Unknown barcode'; // TODO(l10n)
-}
-
-class WrongItemException implements Exception {
-  WrongItemException({
-    required this.expectedArticle,
-    required this.actualArticle,
-  });
-  final String expectedArticle;
-  final String actualArticle;
-
-  @override
-  String toString() => 'Wrong item'; // TODO(l10n)
-}
-
-class ScanCancelledException implements Exception {
-  @override
-  String toString() => 'Scan cancelled'; // TODO(l10n)
-}
+import '../../l10n/app_localizations.dart';
 
 class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
   @override
-  Future<void> build() async {
-    // no-op
-  }
+  Future<void> build() async {}
 
   String? get _uid => ref.read(firebaseAuthProvider).currentUser?.uid;
 
@@ -42,7 +19,7 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
     required String lineId,
   }) async {
     final uid = _uid;
-    if (uid == null) throw Exception('Not signed in'); // TODO(l10n)
+    if (uid == null) throw NotSignedInException();
 
     state = const AsyncLoading();
     try {
@@ -52,7 +29,7 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
-      rethrow; // ✅ CRITICAL: let UI try/catch handle it
+      rethrow;
     }
   }
 
@@ -61,7 +38,7 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
     required String lineId,
   }) async {
     final uid = _uid;
-    if (uid == null) throw Exception('Not signed in'); // TODO(l10n)
+    if (uid == null) throw NotSignedInException();
 
     state = const AsyncLoading();
     try {
@@ -71,11 +48,10 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
-      rethrow; // ✅ propagate
+      rethrow;
     }
   }
 
-  /// LOCKED BY ME -> scan -> validate format -> resolve barcode -> increment (+auto-release if complete)
   Future<void> scanAndPick(
     BuildContext context, {
     required String transferId,
@@ -83,33 +59,31 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
     required String expectedArticle,
   }) async {
     final uid = _uid;
-    if (uid == null) throw Exception('Not signed in'); // TODO(l10n)
+    if (uid == null) throw NotSignedInException();
+
+    final l10n = AppLocalizations.of(context);
 
     // 1) Scan
     final String? scanned = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
     );
 
-    if (scanned == null) {
-      throw ScanCancelledException();
-    }
-
+    if (scanned == null) throw ScanCancelledException();
     final barcode = scanned.trim();
 
-    // 2) Local validation (EAN-8/EAN-13)
-    final res = BarcodeValidator.validate(barcode);
+    // 2) Validate
+    final res = BarcodeValidator.validate(barcode, l10n);
     if (!res.ok) {
-      throw FormatException(res.error ?? 'Invalid barcode'); // TODO(l10n)
+      throw FormatException(res.error ?? 'Invalid barcode');
     }
 
-    // 3) Resolve barcode -> article (1 read)
+    // 3) Resolve
     final resolvedArticle = await ref
         .read(barcodeRepositoryProvider)
         .resolveArticleByBarcode(barcode);
 
-    if (resolvedArticle == null) {
-      throw UnknownBarcodeException();
-    }
+    if (resolvedArticle == null) throw UnknownBarcodeException();
+
     if (resolvedArticle != expectedArticle) {
       throw WrongItemException(
         expectedArticle: expectedArticle,
@@ -117,7 +91,7 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
       );
     }
 
-    // 4) Increment (1 transaction)
+    // 4) Increment
     state = const AsyncLoading();
     try {
       await ref
@@ -128,12 +102,11 @@ class TransferPickingController extends AutoDisposeAsyncNotifier<void> {
             userId: uid,
             autoReleaseOnComplete: true,
           );
-
       HapticFeedback.lightImpact();
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
-      rethrow; // ✅ propagate so UI doesn't show "OK" on failure
+      rethrow;
     }
   }
 }

@@ -1,18 +1,372 @@
 {
   "@@locale": "en",
   "appTitle": "SkladHelper",
+  "@appTitle": {
+    "description": "The main application title"
+  },
   "loginTitle": "Sign in",
+  "@loginTitle": {
+    "description": "Title shown on the login screen"
+  },
   "email": "Email",
+  "@email": {
+    "description": "Label for the email input field"
+  },
   "password": "Password",
+  "@password": {
+    "description": "Label for the password input field"
+  },
   "signIn": "Sign in",
+  "@signIn": {
+    "description": "Button text to sign in"
+  },
   "signUp": "Create account",
+  "@signUp": {
+    "description": "Button text to create a new account"
+  },
   "forgotPassword": "Forgot password?",
+  "@forgotPassword": {
+    "description": "Link text for password recovery"
+  },
   "signInWithGoogle": "Sign in with Google",
+  "@signInWithGoogle": {
+    "description": "Button text for Google Sign-In"
+  },
   "waitingActivationTitle": "Waiting for activation",
+  "@waitingActivationTitle": {
+    "description": "Title on the screen when waiting for admin approval"
+  },
   "waitingActivationBody": "Your account was created. Admin must activate access.",
+  "@waitingActivationBody": {
+    "description": "Message explaining the waiting status"
+  },
   "checkAgain": "Check again",
+  "@checkAgain": {
+    "description": "Button to refresh activation status"
+  },
   "logout": "Log out",
+  "@logout": {
+    "description": "Button text to log out"
+  },
   "assignments": "Assignments",
+  "@assignments": {
+    "description": "Title for the assignments section"
+  },
   "tasks": "Tasks",
-  "profile": "Profile"
+  "@tasks": {
+    "description": "Title for the tasks section"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Title for the profile section"
+  },
+  "barcodeAlreadyBound": "Barcode already bound to: {article}",
+  "@barcodeAlreadyBound": {
+    "description": "Error message when a barcode is already assigned to another product",
+    "placeholders": {
+      "article": {
+        "type": "String",
+        "example": "12345"
+      }
+    }
+  },
+  "productNotFound": "Product not found: {article}",
+  "@productNotFound": {
+    "description": "Error message when a product cannot be found by article",
+    "placeholders": {
+      "article": {
+        "type": "String",
+        "example": "12345"
+      }
+    }
+  },
+  "labelArticle": "Article",
+  "@labelArticle": {
+    "description": "Label for the article field"
+  },
+  "labelCategory": "Category",
+  "@labelCategory": {
+    "description": "Label for the category field"
+  },
+  "labelBarcode": "Barcode",
+  "@labelBarcode": {
+    "description": "Label for the barcode field"
+  },
+  "statusBinding": "Binding...",
+  "@statusBinding": {
+    "description": "Button text indicating progress"
+  },
+  "actionBindBarcode": "Bind barcode",
+  "@actionBindBarcode": {
+    "description": "Button label to start binding"
+  },
+  "errorNotAllowed": "Not allowed.",
+  "@errorNotAllowed": {
+    "description": "Error shown when user lacks permissions"
+  },
+  "errorGeneric": "Error: {error}",
+  "@errorGeneric": {
+    "description": "Generic error message",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network failed"
+      }
+    }
+  },
+  "successBound": "Barcode bound successfully",
+  "@successBound": {
+    "description": "Success message after binding"
+  },
+  "errorNotSignedIn": "Not signed in",
+  "@errorNotSignedIn": {
+    "description": "Error when user is not authenticated"
+  },
+  "scanCancelled": "Scan cancelled",
+  "@scanCancelled": {
+    "description": "Message when user cancels scanning"
+  },
+  "barcodeUnknown": "Unknown barcode",
+  "@barcodeUnknown": {
+    "description": "Error when barcode is not in database"
+  },
+  "checkingNotAllowed": "Checking not allowed",
+  "@checkingNotAllowed": {
+    "description": "Error when checking is forbidden"
+  },
+  "checkingNotFullyPicked": "Items not fully picked yet",
+  "@checkingNotFullyPicked": {
+    "description": "Error trying to check before picking is done"
+  },
+  "checkingWrongItem": "Wrong item. Expected: {expected}, Actual: {actual}",
+  "@checkingWrongItem": {
+    "placeholders": {
+      "expected": {
+        "type": "String"
+      },
+      "actual": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingNotAllChecked": "Not all items are checked",
+  "@checkingNotAllChecked": {
+    "description": "Error trying to finish transfer before checking all items"
+  },
+  "scanTitle": "Scan",
+  "@scanTitle": {
+    "description": "Title for barcode scanner screen"
+  },
+  "catalogTitle": "Catalog",
+  "@catalogTitle": {
+    "description": "Title for catalog screen"
+  },
+  "searchByArticle": "Search by article (exact)",
+  "@searchByArticle": {
+    "description": "Hint text for search field"
+  },
+  "clearSearch": "Clear",
+  "@clearSearch": {
+    "description": "Tooltip for clear search button"
+  },
+  "loadMore": "Load more",
+  "@loadMore": {
+    "description": "Button to load more items"
+  },
+  "listEnd": "End",
+  "@listEnd": {
+    "description": "Text indicating end of list"
+  },
+  "noBarcode": "NO BARCODE",
+  "@noBarcode": {
+    "description": "Badge text for missing barcode"
+  },
+  "notificationsTitle": "Notifications",
+  "@notificationsTitle": {
+    "description": "Title for notifications screen"
+  },
+  "noNotifications": "No notifications",
+  "@noNotifications": {
+    "description": "Text when notification list is empty"
+  },
+  "productsTitle": "Products",
+  "@productsTitle": {
+    "description": "Title for products screen"
+  },
+  "productsPlaceholder": "Products list (MVP placeholder)",
+  "@productsPlaceholder": {
+    "description": "Placeholder text for products screen"
+  },
+  "errorLineNotFound": "Line not found",
+  "@errorLineNotFound": {
+    "description": "Error when transfer line is missing"
+  },
+  "errorLockedByOther": "Locked by other",
+  "@errorLockedByOther": {
+    "description": "Error when line is locked by another user"
+  },
+  "errorAlreadyHoldingLock": "Already holding another lock",
+  "@errorAlreadyHoldingLock": {
+    "description": "Error when user tries to lock multiple lines"
+  },
+  "errorLockExpired": "Lock expired",
+  "@errorLockExpired": {
+    "description": "Error when lock time has passed"
+  },
+  "errorNotLockOwner": "Not lock owner",
+  "@errorNotLockOwner": {
+    "description": "Error when operation performed without lock ownership"
+  },
+  "errorOverPick": "Over-pick prevented",
+  "@errorOverPick": {
+    "description": "Error when trying to pick more than planned"
+  },
+  "errorOverCheck": "Over-check prevented",
+  "@errorOverCheck": {
+    "description": "Error when trying to check more than planned"
+  },
+  "valEmpty": "Barcode is empty",
+  "@valEmpty": {
+    "description": "Validation error"
+  },
+  "valNumericOnly": "Digits only (EAN-8 / EAN-13)",
+  "@valNumericOnly": {
+    "description": "Validation error"
+  },
+  "valChecksum": "Invalid EAN-13 checksum",
+  "@valChecksum": {
+    "description": "Validation error"
+  },
+  "valLength": "Only EAN-8 (8 digits) or EAN-13 (13 digits)",
+  "@valLength": {
+    "description": "Validation error"
+  },
+  "statusNew": "New",
+  "@statusNew": {
+    "description": "Transfer status New"
+  },
+  "statusPicking": "In progress",
+  "@statusPicking": {
+    "description": "Transfer status Picking"
+  },
+  "statusPicked": "Picked",
+  "@statusPicked": {
+    "description": "Transfer status Picked"
+  },
+  "statusChecking": "Checking",
+  "@statusChecking": {
+    "description": "Transfer status Checking"
+  },
+  "statusDone": "Done",
+  "@statusDone": {
+    "description": "Transfer status Done"
+  },
+  "btnStartChecking": "Start checking",
+  "@btnStartChecking": {
+    "description": "Button to start checking process"
+  },
+  "btnFinish": "Finish",
+  "@btnFinish": {
+    "description": "Button to finish transfer"
+  },
+  "btnPrepare": "Prepare",
+  "@btnPrepare": {
+    "description": "Button to acquire lock on line"
+  },
+  "btnScan": "Scan",
+  "@btnScan": {
+    "description": "Button to open scanner"
+  },
+  "btnCancel": "Cancel",
+  "@btnCancel": {
+    "description": "Button to cancel action"
+  },
+  "btnCheck": "Check",
+  "@btnCheck": {
+    "description": "Button to perform check"
+  },
+  "btnCancelCheck": "Cancel check",
+  "@btnCancelCheck": {
+    "description": "Button to cancel check action"
+  },
+  "msgCheckingStarted": "Checking started",
+  "@msgCheckingStarted": {
+    "description": "Toast message"
+  },
+  "msgFinishBlocked": "Finish blocked: not all checked",
+  "@msgFinishBlocked": {
+    "description": "Toast message"
+  },
+  "msgFinished": "Finished",
+  "@msgFinished": {
+    "description": "Toast message"
+  },
+  "msgPrepared": "Prepared",
+  "@msgPrepared": {
+    "description": "Toast message"
+  },
+  "msgCancelled": "Cancelled",
+  "@msgCancelled": {
+    "description": "Toast message"
+  },
+  "msgOk": "OK",
+  "@msgOk": {
+    "description": "Toast message"
+  },
+  "msgChecked": "Checked +1",
+  "@msgChecked": {
+    "description": "Toast message"
+  },
+  "msgCheckCancelled": "Check cancelled",
+  "@msgCheckCancelled": {
+    "description": "Toast message"
+  },
+  "subPicked": "Picked {picked}/{planned}",
+  "@subPicked": {
+    "description": "Subtitle showing pick progress",
+    "placeholders": {
+      "picked": {
+        "type": "String",
+        "example": "5"
+      },
+      "planned": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "subChecked": "Checked {checked}/{planned}",
+  "@subChecked": {
+    "description": "Subtitle showing check progress",
+    "placeholders": {
+      "checked": {
+        "type": "String",
+        "example": "5"
+      },
+      "planned": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "subLockedPick": "Locked (pick)",
+  "@subLockedPick": {
+    "description": "Subtitle indicating pick lock"
+  },
+  "subLockedCheck": "Locked (check)",
+  "@subLockedCheck": {
+    "description": "Subtitle indicating check lock"
+  },
+  "labelNoLines": "No lines",
+  "@labelNoLines": {
+    "description": "Label when list is empty"
+  },
+  "labelDoneBadge": "DONE",
+  "@labelDoneBadge": {
+    "description": "Badge text for completed items"
+  },
+  "transferDetails": "Transfer Details",
+  "@transferDetails": {
+    "description": "Title for transfer detail screen"
+  }
 }

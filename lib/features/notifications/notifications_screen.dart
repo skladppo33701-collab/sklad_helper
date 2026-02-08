@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/router/providers.dart';
 import '../../data/models/app_notification.dart';
+import '../../l10n/app_localizations.dart'; // <--- Импорт
 import 'notifications_providers.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget build(BuildContext context) {
     final feed = ref.watch(notificationsFeedProvider);
     final user = ref.watch(authStateProvider).asData?.value;
+    final l10n = AppLocalizations.of(context); // <--- Получаем l10n
 
     if (!_marked && user != null) {
       _marked = true;
@@ -31,14 +33,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'), // TODO(l10n)
+        title: Text(l10n.notificationsTitle), // ИСПРАВЛЕНО
       ),
       body: feed.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')), // TODO(l10n)
+        error: (e, _) =>
+            Center(child: Text(l10n.errorGeneric(e.toString()))), // ИСПРАВЛЕНО
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No notifications')); // TODO(l10n)
+            return Center(child: Text(l10n.noNotifications)); // ИСПРАВЛЕНО
           }
 
           return ListView.separated(

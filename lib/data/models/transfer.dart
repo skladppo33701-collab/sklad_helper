@@ -2,70 +2,60 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum TransferStatus { new_, picking, picked, checking, done }
 
-TransferStatus transferStatusFromString(String s) {
-  switch (s) {
-    case 'new':
-      return TransferStatus.new_;
-    case 'picking':
-      return TransferStatus.picking;
-    case 'picked':
-      return TransferStatus.picked;
-    case 'checking':
-      return TransferStatus.checking;
-    case 'done':
-      return TransferStatus.done;
-    default:
-      return TransferStatus.new_;
-  }
-}
-
-String transferStatusToString(TransferStatus s) {
-  switch (s) {
-    case TransferStatus.new_:
-      return 'new';
-    case TransferStatus.picking:
-      return 'picking';
-    case TransferStatus.picked:
-      return 'picked';
-    case TransferStatus.checking:
-      return 'checking';
-    case TransferStatus.done:
-      return 'done';
-  }
-}
-
 class Transfer {
-  final String transferId; // doc id
+  final String transferId;
   final String title;
-  final DateTime createdAt;
-  final String createdBy;
   final TransferStatus status;
-  final Map<String, dynamic>? flags;
-  final Map<String, dynamic>? stats;
+  final DateTime createdAt;
+  final String from;
+  final String to;
+  final int itemsTotal;
+  final int pcsTotal;
+  // НОВОЕ ПОЛЕ
+  final bool isDeleted;
 
-  const Transfer({
+  Transfer({
     required this.transferId,
     required this.title,
-    required this.createdAt,
-    required this.createdBy,
     required this.status,
-    this.flags,
-    this.stats,
+    required this.createdAt,
+    required this.from,
+    required this.to,
+    this.itemsTotal = 0,
+    this.pcsTotal = 0,
+    this.isDeleted = false, // По умолчанию не удален
   });
 
-  static Transfer fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final d = doc.data() ?? <String, dynamic>{};
-    final ts = d['createdAt'];
+  factory Transfer.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
     return Transfer(
-      transferId: (d['transferId'] as String?) ?? doc.id,
-      title: (d['title'] as String?) ?? doc.id,
-      createdAt: ts is Timestamp
-          ? ts.toDate()
-          : DateTime.fromMillisecondsSinceEpoch(0),
-      createdBy: (d['createdBy'] as String?) ?? '',
-      status: transferStatusFromString((d['status'] as String?) ?? 'new'),
-      flags: d['flags'] as Map<String, dynamic>?,
-      stats: d['stats'] as Map<String, dynamic>?,
+      transferId: doc.id,
+      title: data['title'] ?? 'Transfer ${doc.id}',
+      status: _parseStatus(data['status']),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      from: data['from'] ?? '',
+      to: data['to'] ?? '',
+      itemsTotal: (data['itemsTotal'] as num?)?.toInt() ?? 0,
+      pcsTotal: (data['pcsTotal'] as num?)?.toInt() ?? 0,
+      // Читаем флаг (если его нет в базе — считаем false)
+      isDeleted: data['isDeleted'] ?? false,
     );
+  }
+
+  static TransferStatus _parseStatus(String? s) {
+    switch (s) {
+      case 'new':
+        return TransferStatus.new_;
+      case 'picking':
+        return TransferStatus.picking;
+      case 'picked':
+        return TransferStatus.picked;
+      case 'checking':
+        return TransferStatus.checking;
+      case 'done':
+        return TransferStatus.done;
+      default:
+        return TransferStatus.new_;
+    }
   }
 }

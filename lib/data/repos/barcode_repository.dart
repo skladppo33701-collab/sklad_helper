@@ -2,21 +2,35 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/barcode_index_entry.dart';
 
+// --- ИСКЛЮЧЕНИЯ (Обновлены для работы с ExceptionMapper) ---
+
 class BarcodeConflictException implements Exception {
-  BarcodeConflictException(this.message);
-  final String message;
+  // Храним артикул, который уже занят этим штрихкодом
+  BarcodeConflictException(this.article);
+  final String article;
 
   @override
-  String toString() => message;
+  String toString() => 'BarcodeConflictException: $article';
 }
 
 class ProductAlreadyBoundException implements Exception {
-  ProductAlreadyBoundException(this.message);
-  final String message;
+  // Храним штрихкод, который уже есть у товара
+  ProductAlreadyBoundException(this.barcode);
+  final String barcode;
 
   @override
-  String toString() => message;
+  String toString() => 'ProductAlreadyBoundException: $barcode';
 }
+
+class ProductNotFoundException implements Exception {
+  ProductNotFoundException(this.article);
+  final String article;
+
+  @override
+  String toString() => 'ProductNotFoundException: $article';
+}
+
+// -----------------------------------------------------------
 
 class BarcodeRepository {
   BarcodeRepository(this._db);
@@ -54,23 +68,23 @@ class BarcodeRepository {
       if (barcodeSnap.exists) {
         final existingArticle =
             (barcodeSnap.data()?['article'] as String?) ?? 'unknown';
-        throw BarcodeConflictException(
-          'Barcode already bound to: $existingArticle', // TODO(l10n)
-        );
+
+        // ИСПРАВЛЕНО: Передаем данные (артикул), а не текст
+        throw BarcodeConflictException(existingArticle);
       }
 
       final productSnap = await tx.get(productRef);
       if (!productSnap.exists) {
-        throw Exception('Product not found: $article'); // TODO(l10n)
+        // ИСПРАВЛЕНО: Используем типизированное исключение
+        throw ProductNotFoundException(article);
       }
 
       final currentBarcode = productSnap.data()?['barcode'] as String?;
       if (currentBarcode != null &&
           currentBarcode.isNotEmpty &&
           currentBarcode != barcode) {
-        throw ProductAlreadyBoundException(
-          'Product already has barcode: $currentBarcode', // TODO(l10n)
-        );
+        // ИСПРАВЛЕНО: Передаем данные (штрихкод), а не текст
+        throw ProductAlreadyBoundException(currentBarcode);
       }
 
       final entry = BarcodeIndexEntry(

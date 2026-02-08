@@ -1,96 +1,98 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:riverpod/riverpod.dart';
-import 'package:sklad_helper/app/router/providers.dart';
-import 'package:sklad_helper/features/auth/auth_screen.dart';
-import 'package:sklad_helper/features/auth/waiting_activation_screen.dart';
-import 'package:sklad_helper/features/home/home_shell.dart';
-import 'package:sklad_helper/features/transfers/transfer_detail_screen.dart';
-import 'package:sklad_helper/features/transfers/transfers_list_screen.dart';
 
-/// Forces GoRouter to refresh when streams emit.
-class GoRouterRefreshStream extends ChangeNotifier {
-  GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
-  }
-
-  late final StreamSubscription<dynamic> _sub;
-
-  @override
-  void dispose() {
-    _sub.cancel();
-    super.dispose();
-  }
-}
+import '../../features/auth/auth_screen.dart';
+import '../../features/auth/waiting_activation_screen.dart';
+import '../../features/home/home_shell.dart';
+import '../../features/transfers/transfer_detail_screen.dart';
+import '../../features/transfers/transfers_list_screen.dart';
+import 'providers.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Auth changes should refresh router.
-  final auth = ref.watch(firebaseAuthProvider);
-
-  // IMPORTANT: watch profile so router rebuilds when user gets activated.
-  final profileAsync = ref.watch(userProfileProvider);
-  final profile = profileAsync.asData?.value;
+  final refresh = _RouterRefreshNotifier(ref);
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     initialLocation: '/home',
-    refreshListenable: GoRouterRefreshStream(auth.authStateChanges()),
-    routes: [
-      GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
-      GoRoute(
-        path: '/waiting',
-        builder: (context, state) => const WaitingActivationScreen(),
-      ),
-      ShellRoute(
-        builder: (context, state, child) => HomeShell(child: child),
-        routes: [
-          GoRoute(
-            path: '/home',
-            builder: (context, state) => const TransfersListScreen(),
-          ),
-          GoRoute(
-            path: '/transfers',
-            builder: (context, state) => const TransfersListScreen(),
-          ),
-          GoRoute(
-            path: '/transfer/:id',
-            builder: (context, state) {
-              final id = state.pathParameters['id']!;
-              return TransferDetailScreen(transferId: id);
-            },
-          ),
-        ],
-      ),
-    ],
+    refreshListenable: refresh,
     redirect: (context, state) {
-      final user = auth.currentUser;
+      final user = ref.read(firebaseAuthProvider).currentUser;
 
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
-      final isWaitingRoute = state.matchedLocation.startsWith('/waiting');
+      final isWaitingRoute = state.matchedLocation == '/waiting';
 
-      // 1) Not signed in -> /auth
+      // 1) Если не вошли -> на экран входа
       if (user == null) {
         return isAuthRoute ? null : '/auth';
       }
 
-      // 2) Signed in, but profile not loaded yet -> don't redirect (avoid loops)
-      if (profile == null) {
-        return null;
-      }
+      // 2) Если вошли, но профиль еще грузится -> ждем
+      final profileAsync = ref.read(userProfileProvider);
+      final profile = profileAsync.asData?.value;
+      if (profile == null) return null;
 
-      // 3) Signed in, but inactive -> /waiting only
+      // 3) Если пользователь не активен -> на экран ожидания
       if (!profile.isActive) {
         return isWaitingRoute ? null : '/waiting';
       }
 
-      // 4) Active staff -> block /auth and /waiting
+      // 4) Если активен, но пытается зайти на auth/waiting -> домой
       if (isAuthRoute || isWaitingRoute) {
         return '/home';
       }
 
       return null;
     },
+    routes: [
+      GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+      GoRoute(
+        path: '/waiting',
+        builder: (context, state) => const WaitingActivationScreen(),
+      ),
+
+      // HomeShell теперь обычный экран, который сам внутри управляет табами
+      GoRoute(path: '/home', builder: (context, state) => const HomeShell()),
+
+      // Отдельные экраны
+      GoRoute(
+        path: '/transfers',
+        builder: (context, state) => const TransfersListScreen(),
+      ),
+
+      // Детали трансфера
+      GoRoute(
+        path: '/transfer/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return TransferDetailScreen(transferId: id);
+        },
+      ),
+    ],
   );
 });
+
+class _RouterRefreshNotifier extends ChangeNotifier {
+  _RouterRefreshNotifier(this._ref) {
+    // Слушаем изменения авторизации
+    _authSub = _ref.read(firebaseAuthProvider).authStateChanges().listen((_) {
+      notifyListeners();
+    });
+
+    // Слушаем изменения профиля (активация, роль)
+    _ref.listen(userProfileProvider, (_, _) {
+      notifyListeners();
+    });
+  }
+
+  final Ref _ref;
+  StreamSubscription? _authSub;
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
+}
