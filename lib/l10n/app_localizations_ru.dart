@@ -71,7 +71,25 @@ class AppLocalizationsRu extends AppLocalizations {
   String get labelCategory => 'Категория';
 
   @override
+  String get labelBrand => 'Бренд';
+
+  @override
   String get labelBarcode => 'Штрихкод';
+
+  @override
+  String get labelName => 'Наименование';
+
+  @override
+  String get catalogTitle => 'Каталог';
+
+  @override
+  String get searchByArticle => 'Поиск по названию/артикулу';
+
+  @override
+  String get loadMore => 'Загрузить еще';
+
+  @override
+  String get listEnd => 'Конец списка';
 
   @override
   String get statusBinding => 'Привязка...';
@@ -100,54 +118,24 @@ class AppLocalizationsRu extends AppLocalizations {
   String get barcodeUnknown => 'Неизвестный штрихкод';
 
   @override
-  String get checkingNotAllowed => 'Проверка запрещена';
-
-  @override
-  String get checkingNotFullyPicked => 'Товары еще не собраны полностью';
-
-  @override
-  String checkingWrongItem(String expected, String actual) {
-    return 'Не тот товар. Ожидался: $expected, По факту: $actual';
+  String wrongItem(String expected) {
+    return 'Не тот товар. Ожидался: $expected';
   }
 
   @override
-  String get checkingNotAllChecked => 'Не все товары проверены';
+  String get transferTitle => 'Перемещение';
 
   @override
-  String get scanTitle => 'Сканирование';
+  String get transferNotFound => 'Перемещение не найдено';
 
   @override
-  String get catalogTitle => 'Каталог';
+  String get listEmpty => 'Список пуст';
 
   @override
-  String get searchByArticle => 'Поиск по артикулу (точно)';
+  String get status => 'Статус';
 
   @override
-  String get clearSearch => 'Очистить';
-
-  @override
-  String get loadMore => 'Загрузить еще';
-
-  @override
-  String get listEnd => 'Конец списка';
-
-  @override
-  String get noBarcode => 'БЕЗ ШТРИХКОДА';
-
-  @override
-  String get notificationsTitle => 'Уведомления';
-
-  @override
-  String get noNotifications => 'Нет уведомлений';
-
-  @override
-  String get productsTitle => 'Товары';
-
-  @override
-  String get productsPlaceholder => 'Список товаров (в разработке)';
-
-  @override
-  String get errorLineNotFound => 'Строка не найдена';
+  String get items => 'Позиций';
 
   @override
   String get errorLockedByOther => 'Заблокировано другим пользователем';
@@ -202,6 +190,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get btnFinish => 'Завершить';
 
   @override
+  String get btnFinishPicking => 'Завершить сборку';
+
+  @override
   String get btnPrepare => 'Подготовить';
 
   @override
@@ -217,6 +208,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get btnCancelCheck => 'Отм. пров.';
 
   @override
+  String get save => 'Сохранить';
+
+  @override
+  String get delete => 'Удалить';
+
+  @override
+  String get confirmDelete => 'Вы уверены, что хотите удалить?';
+
+  @override
   String get msgCheckingStarted => 'Проверка начата';
 
   @override
@@ -226,13 +226,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get msgFinished => 'Завершено';
 
   @override
-  String get msgPrepared => 'Подготовлено';
-
-  @override
-  String get msgCancelled => 'Отменено';
-
-  @override
-  String get msgOk => 'ОК';
+  String get msgOk => 'OK';
 
   @override
   String get msgChecked => 'Проверено +1';
@@ -251,17 +245,47 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get subLockedPick => 'Блок (сборка)';
+  String get subLockedPick => 'Заблокировано (сборка)';
 
   @override
-  String get subLockedCheck => 'Блок (проверка)';
+  String get subLockedCheck => 'Заблокировано (проверка)';
 
   @override
-  String get labelNoLines => 'Нет позиций';
+  String get scanTitle => 'Сканировать штрихкод';
 
   @override
-  String get labelDoneBadge => 'ГОТОВО';
+  String get notificationsTitle => 'Уведомления';
 
   @override
-  String get transferDetails => 'Детали перемещения';
+  String get noNotifications => 'Нет уведомлений';
+
+  @override
+  String get navHome => 'Главная';
+
+  @override
+  String get navTransfers => 'Перемещения';
+
+  @override
+  String get navCatalog => 'Каталог';
+
+  @override
+  String get account => 'Аккаунт';
+
+  @override
+  String get guest => 'Гость';
+
+  @override
+  String get active => 'Активен';
+
+  @override
+  String get inactive => 'Неактивен';
+
+  @override
+  String get language => 'Язык';
+
+  @override
+  String get adminUsers => 'Админ: Пользователи';
+
+  @override
+  String get adminProducts => 'Админ: База товаров';
 }

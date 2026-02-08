@@ -1,54 +1,41 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../app/router/providers.dart';
 import '../../data/models/transfer.dart';
 import '../../data/models/transfer_line.dart';
-import '../../data/repos/barcode_repository.dart';
-import '../../data/repos/transfer_lines_repository.dart';
 import '../../data/repos/transfer_repository.dart';
-import 'transfer_checking_controller.dart';
-import 'transfer_picking_controller.dart';
+import '../../data/repos/transfer_lines_repository.dart';
+import '../../data/repos/barcode_repository.dart';
 
-final transferRepositoryProvider = Provider<TransferRepository>((ref) {
-  return TransferRepository(ref.watch(firestoreProvider));
+// Репозитории
+final transferRepositoryProvider = Provider((ref) {
+  return TransferRepository(FirebaseFirestore.instance);
 });
 
-final transferLinesRepositoryProvider = Provider<TransferLinesRepository>((
-  ref,
-) {
-  return TransferLinesRepository(ref.watch(firestoreProvider));
+final transferLinesRepositoryProvider = Provider((ref) {
+  return TransferLinesRepository(FirebaseFirestore.instance);
 });
 
-final barcodeRepositoryProvider = Provider<BarcodeRepository>((ref) {
-  return BarcodeRepository(ref.watch(firestoreProvider));
+final barcodeRepositoryProvider = Provider((ref) {
+  return BarcodeRepository(FirebaseFirestore.instance);
 });
 
-// transfers list: stream ONLY transfers
+// --- Провайдеры данных ---
+
+// Список трансферов (исправлено имя для соответствия TransfersListScreen)
 final transfersStreamProvider = StreamProvider<List<Transfer>>((ref) {
-  return ref.watch(transferRepositoryProvider).watchTransfers(limit: 50);
+  return ref.watch(transferRepositoryProvider).watchTransfers();
 });
 
-// detail: stream ONLY lines while open
-final transferLinesProvider = StreamProvider.autoDispose
-    .family<List<TransferLine>, String>((ref, transferId) {
-      return ref.watch(transferLinesRepositoryProvider).watchLines(transferId);
+// Один трансфер
+final transferStreamProvider = StreamProvider.family<Transfer?, String>((
+  ref,
+  id,
+) {
+  return ref.watch(transferRepositoryProvider).watchTransfer(id);
+});
+
+// Линии трансфера
+final transferLinesStreamProvider =
+    StreamProvider.family<List<TransferLine>, String>((ref, id) {
+      return ref.watch(transferLinesRepositoryProvider).watchLines(id);
     });
-
-// optional: single transfer doc listener while open
-final transferDocProvider = StreamProvider.autoDispose.family<Transfer, String>(
-  (ref, transferId) {
-    return ref.watch(transferRepositoryProvider).watchTransfer(transferId);
-  },
-);
-
-// Sprint4 picking controller
-final transferPickingControllerProvider =
-    AutoDisposeAsyncNotifierProvider<TransferPickingController, void>(
-      TransferPickingController.new,
-    );
-
-// Sprint5 checking controller
-final transferCheckingControllerProvider =
-    AutoDisposeAsyncNotifierProvider<TransferCheckingController, void>(
-      TransferCheckingController.new,
-    );

@@ -1,26 +1,69 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../theme/app_tokens.dart';
 
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.borderRadius = 16,
+    this.blur = 10,
+    this.opacity = 0.05,
+    this.borderOpacity = 0.1,
+    this.padding,
+    this.margin,
+    this.onTap,
   });
 
   final Widget child;
-  final EdgeInsets padding;
+  final double borderRadius;
+  final double blur;
+  final double opacity;
+  final double borderOpacity;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: AppTokens.surfaceDark2.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.045)),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // В светлой теме стекло белое, в темной - белое (но прозрачное) или черное
+    final tintColor = isDark ? Colors.white : Colors.black;
+
+    Widget content = ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: tintColor.withValues(alpha: opacity),
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: tintColor.withValues(alpha: borderOpacity),
+              width: 1,
+            ),
+          ),
+          child: child,
+        ),
       ),
-      child: child,
     );
+
+    if (margin != null) {
+      content = Padding(padding: margin!, child: content);
+    }
+
+    if (onTap != null) {
+      // Для кликабельных карточек добавляем "всплеск"
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(borderRadius),
+          child: content,
+        ),
+      );
+    }
+
+    return content;
   }
 }

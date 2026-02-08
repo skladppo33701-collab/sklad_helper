@@ -49,7 +49,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assignments => 'Assignments';
 
   @override
-  String get tasks => 'Tasks';
+  String get tasks => 'Plan';
 
   @override
   String get profile => 'Profile';
@@ -71,13 +71,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelCategory => 'Category';
 
   @override
+  String get labelBrand => 'Brand';
+
+  @override
   String get labelBarcode => 'Barcode';
+
+  @override
+  String get labelName => 'Name';
+
+  @override
+  String get catalogTitle => 'Catalog';
+
+  @override
+  String get searchByArticle => 'Search by Name/Article';
+
+  @override
+  String get loadMore => 'Load More';
+
+  @override
+  String get listEnd => 'End of list';
 
   @override
   String get statusBinding => 'Binding...';
 
   @override
-  String get actionBindBarcode => 'Bind barcode';
+  String get actionBindBarcode => 'Bind Barcode';
 
   @override
   String get errorNotAllowed => 'Not allowed.';
@@ -100,75 +118,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get barcodeUnknown => 'Unknown barcode';
 
   @override
-  String get checkingNotAllowed => 'Checking not allowed';
-
-  @override
-  String get checkingNotFullyPicked => 'Items not fully picked yet';
-
-  @override
-  String checkingWrongItem(String expected, String actual) {
-    return 'Wrong item. Expected: $expected, Actual: $actual';
+  String wrongItem(String expected) {
+    return 'Wrong item scanned. Expected: $expected';
   }
 
   @override
-  String get checkingNotAllChecked => 'Not all items are checked';
+  String get transferTitle => 'Transfer';
 
   @override
-  String get scanTitle => 'Scan';
+  String get transferNotFound => 'Transfer not found';
 
   @override
-  String get catalogTitle => 'Catalog';
+  String get listEmpty => 'List is empty';
 
   @override
-  String get searchByArticle => 'Search by article (exact)';
+  String get status => 'Status';
 
   @override
-  String get clearSearch => 'Clear';
+  String get items => 'Items';
 
   @override
-  String get loadMore => 'Load more';
+  String get errorLockedByOther => 'Locked by another user';
 
   @override
-  String get listEnd => 'End';
-
-  @override
-  String get noBarcode => 'NO BARCODE';
-
-  @override
-  String get notificationsTitle => 'Notifications';
-
-  @override
-  String get noNotifications => 'No notifications';
-
-  @override
-  String get productsTitle => 'Products';
-
-  @override
-  String get productsPlaceholder => 'Products list (MVP placeholder)';
-
-  @override
-  String get errorLineNotFound => 'Line not found';
-
-  @override
-  String get errorLockedByOther => 'Locked by other';
-
-  @override
-  String get errorAlreadyHoldingLock => 'Already holding another lock';
+  String get errorAlreadyHoldingLock => 'You already have an active task';
 
   @override
   String get errorLockExpired => 'Lock expired';
 
   @override
-  String get errorNotLockOwner => 'Not lock owner';
+  String get errorNotLockOwner => 'You are not the owner of this lock';
 
   @override
-  String get errorOverPick => 'Over-pick prevented';
+  String get errorOverPick => 'Cannot pick more than planned';
 
   @override
-  String get errorOverCheck => 'Over-check prevented';
+  String get errorOverCheck => 'Cannot check more than planned';
 
   @override
-  String get valEmpty => 'Barcode is empty';
+  String get valEmpty => 'Empty barcode';
 
   @override
   String get valNumericOnly => 'Digits only (EAN-8 / EAN-13)';
@@ -183,7 +171,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusNew => 'New';
 
   @override
-  String get statusPicking => 'In progress';
+  String get statusPicking => 'Picking';
 
   @override
   String get statusPicked => 'Picked';
@@ -195,10 +183,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusDone => 'Done';
 
   @override
-  String get btnStartChecking => 'Start checking';
+  String get btnStartChecking => 'Start Checking';
 
   @override
   String get btnFinish => 'Finish';
+
+  @override
+  String get btnFinishPicking => 'Finish Picking';
 
   @override
   String get btnPrepare => 'Prepare';
@@ -213,22 +204,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get btnCheck => 'Check';
 
   @override
-  String get btnCancelCheck => 'Cancel check';
+  String get btnCancelCheck => 'Cancel Check';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get confirmDelete => 'Are you sure you want to delete this?';
 
   @override
   String get msgCheckingStarted => 'Checking started';
 
   @override
-  String get msgFinishBlocked => 'Finish blocked: not all checked';
+  String get msgFinishBlocked => 'Cannot finish: not all items checked';
 
   @override
   String get msgFinished => 'Finished';
-
-  @override
-  String get msgPrepared => 'Prepared';
-
-  @override
-  String get msgCancelled => 'Cancelled';
 
   @override
   String get msgOk => 'OK';
@@ -256,11 +250,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subLockedCheck => 'Locked (check)';
 
   @override
-  String get labelNoLines => 'No lines';
+  String get scanTitle => 'Scan Barcode';
 
   @override
-  String get labelDoneBadge => 'DONE';
+  String get notificationsTitle => 'Notifications';
 
   @override
-  String get transferDetails => 'Transfer Details';
+  String get noNotifications => 'No notifications';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navTransfers => 'Transfers';
+
+  @override
+  String get navCatalog => 'Catalog';
+
+  @override
+  String get account => 'Account';
+
+  @override
+  String get guest => 'Guest';
+
+  @override
+  String get active => 'Active';
+
+  @override
+  String get inactive => 'Inactive';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get adminUsers => 'Admin: Users';
+
+  @override
+  String get adminProducts => 'Admin: Products DB';
 }

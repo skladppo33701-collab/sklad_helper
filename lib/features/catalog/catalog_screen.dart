@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/product.dart';
-import '../../l10n/app_localizations.dart'; // <--- Импорт
+import '../../l10n/app_localizations.dart';
+import '../../app/theme/app_dimens.dart';
 import 'catalog_providers.dart';
 
 class CatalogScreen extends ConsumerStatefulWidget {
@@ -60,19 +61,22 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   Widget build(BuildContext context) {
     final catalogAsync = ref.watch(catalogControllerProvider);
     final controller = ref.read(catalogControllerProvider.notifier);
-    final l10n = AppLocalizations.of(context); // <--- Получаем l10n
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.catalogTitle)), // ИСПРАВЛЕНО
+      appBar: AppBar(
+        title: Text(l10n.catalogTitle),
+        // Кнопка импорта удалена
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              TextField(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: TextField(
                 controller: _search,
                 decoration: InputDecoration(
-                  labelText: l10n.searchByArticle, // ИСПРАВЛЕНО
+                  labelText: l10n.searchByArticle,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: IconButton(
                     onPressed: () {
@@ -80,33 +84,26 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       setState(() => _searchResult = null);
                     },
                     icon: const Icon(Icons.clear),
-                    tooltip: l10n.clearSearch, // ИСПРАВЛЕНО
                   ),
                 ),
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => _doSearch(),
               ),
-              const SizedBox(height: 12),
-              if (_searching) const LinearProgressIndicator(),
-              Expanded(
-                child: _hasActiveSearch
-                    ? _buildSearchResult(context, l10n)
-                    : catalogAsync.when(
-                        data: (items) => _buildList(
-                          context,
-                          items,
-                          controller.hasMore,
-                          l10n,
-                        ),
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(
-                          child: Text(l10n.errorGeneric(e.toString())),
-                        ), // ИСПРАВЛЕНО
-                      ),
-              ),
-            ],
-          ),
+            ),
+            if (_searching) const LinearProgressIndicator(minHeight: 2),
+            Expanded(
+              child: _hasActiveSearch
+                  ? _buildSearchResult(context, l10n)
+                  : catalogAsync.when(
+                      data: (items) =>
+                          _buildList(context, items, controller.hasMore, l10n),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, _) =>
+                          Center(child: Text(l10n.errorGeneric(e.toString()))),
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -116,13 +113,12 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
     if (_searching) return const SizedBox.shrink();
     final p = _searchResult;
     if (p == null) {
-      return Center(
-        child: Text(l10n.productNotFound('')),
-      ); // Используем готовое
+      return Center(child: Text(l10n.productNotFound('')));
     }
     return ListView(
+      padding: const EdgeInsets.all(AppDimens.x16),
       children: [
-        _ProductTile(
+        _ProductCard(
           product: p,
           onTap: () => context.push('/product/${p.article}'),
           l10n: l10n,
@@ -141,8 +137,9 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
       onRefresh: () =>
           ref.read(catalogControllerProvider.notifier).refreshFirstPage(),
       child: ListView.separated(
+        padding: const EdgeInsets.all(AppDimens.x16),
         itemCount: items.length + 1,
-        separatorBuilder: (_, _) => const Divider(height: 1),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, i) {
           if (i == items.length) {
             return Padding(
@@ -153,14 +150,17 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                         onPressed: () => ref
                             .read(catalogControllerProvider.notifier)
                             .loadMore(),
-                        child: Text(l10n.loadMore), // ИСПРАВЛЕНО
+                        child: Text(l10n.loadMore),
                       )
-                    : Text(l10n.listEnd), // ИСПРАВЛЕНО
+                    : Text(
+                        l10n.listEnd,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
               ),
             );
           }
           final p = items[i];
-          return _ProductTile(
+          return _ProductCard(
             product: p,
             onTap: () => context.push('/product/${p.article}'),
             l10n: l10n,
@@ -171,8 +171,8 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   }
 }
 
-class _ProductTile extends StatelessWidget {
-  const _ProductTile({
+class _ProductCard extends StatelessWidget {
+  const _ProductCard({
     required this.product,
     required this.onTap,
     required this.l10n,
@@ -184,44 +184,92 @@ class _ProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasBarcode = (product.barcode != null && product.barcode!.isNotEmpty);
-    final badge = hasBarcode
-        ? _Badge(text: product.barcode!, icon: Icons.check_circle_outline)
-        : _Badge(
-            text: l10n.noBarcode, // ИСПРАВЛЕНО
-            icon: Icons.qr_code_2_outlined,
-          );
-
-    return ListTile(
-      title: Text('${product.article} — ${product.name}'),
-      subtitle: Text(product.category),
-      trailing: badge,
-      onTap: onTap,
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.text, required this.icon});
-  final String text;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
+    final hasBarcode = (product.barcode != null && product.barcode!.isNotEmpty);
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainer,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16),
-          const SizedBox(width: 6),
-          Text(text, style: theme.textTheme.labelSmall),
-        ],
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer.withValues(
+                        alpha: 0.5,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      product.category.toUpperCase(),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSecondaryContainer,
+                      ),
+                    ),
+                  ),
+                  if (hasBarcode)
+                    Icon(
+                      Icons.qr_code,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    )
+                  else
+                    Icon(
+                      Icons.qr_code_2,
+                      size: 18,
+                      color: theme.colorScheme.error.withValues(alpha: 0.5),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              Text(
+                product.name,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  height: 1.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+
+              Row(
+                children: [
+                  Icon(Icons.tag, size: 14, color: theme.colorScheme.outline),
+                  const SizedBox(width: 4),
+                  Text(
+                    product.article,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontFamily: 'Monospace',
+                      color: theme.colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

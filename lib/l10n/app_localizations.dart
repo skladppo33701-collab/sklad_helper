@@ -166,79 +166,115 @@ abstract class AppLocalizations {
   /// **'Check again'**
   String get checkAgain;
 
-  /// Button text to log out
+  /// Button text to sign out
   ///
   /// In en, this message translates to:
   /// **'Log out'**
   String get logout;
 
-  /// Title for the assignments section
+  /// Tab title for assigned tasks
   ///
   /// In en, this message translates to:
   /// **'Assignments'**
   String get assignments;
 
-  /// Title for the tasks section
+  /// Tab title for planning
   ///
   /// In en, this message translates to:
-  /// **'Tasks'**
+  /// **'Plan'**
   String get tasks;
 
-  /// Title for the profile section
+  /// Tab title for user profile
   ///
   /// In en, this message translates to:
   /// **'Profile'**
   String get profile;
 
-  /// Error message when a barcode is already assigned to another product
+  /// Error message when barcode is duplicate
   ///
   /// In en, this message translates to:
   /// **'Barcode already bound to: {article}'**
   String barcodeAlreadyBound(String article);
 
-  /// Error message when a product cannot be found by article
+  /// Error message when product is missing
   ///
   /// In en, this message translates to:
   /// **'Product not found: {article}'**
   String productNotFound(String article);
 
-  /// Label for the article field
+  /// Label for product article
   ///
   /// In en, this message translates to:
   /// **'Article'**
   String get labelArticle;
 
-  /// Label for the category field
+  /// Label for product category
   ///
   /// In en, this message translates to:
   /// **'Category'**
   String get labelCategory;
 
-  /// Label for the barcode field
+  /// Label for product brand
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get labelBrand;
+
+  /// Label for barcode field
   ///
   /// In en, this message translates to:
   /// **'Barcode'**
   String get labelBarcode;
 
-  /// Button text indicating progress
+  /// Label for product name
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get labelName;
+
+  /// Screen title for catalog
+  ///
+  /// In en, this message translates to:
+  /// **'Catalog'**
+  String get catalogTitle;
+
+  /// Hint text for search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search by Name/Article'**
+  String get searchByArticle;
+
+  /// Button to load next page
+  ///
+  /// In en, this message translates to:
+  /// **'Load More'**
+  String get loadMore;
+
+  /// Message shown at the end of pagination
+  ///
+  /// In en, this message translates to:
+  /// **'End of list'**
+  String get listEnd;
+
+  /// Status text during binding process
   ///
   /// In en, this message translates to:
   /// **'Binding...'**
   String get statusBinding;
 
-  /// Button label to start binding
+  /// Button text to bind barcode
   ///
   /// In en, this message translates to:
-  /// **'Bind barcode'**
+  /// **'Bind Barcode'**
   String get actionBindBarcode;
 
-  /// Error shown when user lacks permissions
+  /// Permission error message
   ///
   /// In en, this message translates to:
   /// **'Not allowed.'**
   String get errorNotAllowed;
 
-  /// Generic error message
+  /// Generic error message template
   ///
   /// In en, this message translates to:
   /// **'Error: {error}'**
@@ -250,7 +286,7 @@ abstract class AppLocalizations {
   /// **'Barcode bound successfully'**
   String get successBound;
 
-  /// Error when user is not authenticated
+  /// Error message when user is not authenticated
   ///
   /// In en, this message translates to:
   /// **'Not signed in'**
@@ -262,193 +298,133 @@ abstract class AppLocalizations {
   /// **'Scan cancelled'**
   String get scanCancelled;
 
-  /// Error when barcode is not in database
+  /// Error when barcode is not found in db
   ///
   /// In en, this message translates to:
   /// **'Unknown barcode'**
   String get barcodeUnknown;
 
-  /// Error when checking is forbidden
+  /// Error when scanned item does not match expected
   ///
   /// In en, this message translates to:
-  /// **'Checking not allowed'**
-  String get checkingNotAllowed;
+  /// **'Wrong item scanned. Expected: {expected}'**
+  String wrongItem(String expected);
 
-  /// Error trying to check before picking is done
+  /// Screen title for transfer details
   ///
   /// In en, this message translates to:
-  /// **'Items not fully picked yet'**
-  String get checkingNotFullyPicked;
+  /// **'Transfer'**
+  String get transferTitle;
 
-  /// No description provided for @checkingWrongItem.
+  /// Error message when transfer document is missing
   ///
   /// In en, this message translates to:
-  /// **'Wrong item. Expected: {expected}, Actual: {actual}'**
-  String checkingWrongItem(String expected, String actual);
+  /// **'Transfer not found'**
+  String get transferNotFound;
 
-  /// Error trying to finish transfer before checking all items
+  /// Message shown when list has no items
   ///
   /// In en, this message translates to:
-  /// **'Not all items are checked'**
-  String get checkingNotAllChecked;
+  /// **'List is empty'**
+  String get listEmpty;
 
-  /// Title for barcode scanner screen
+  /// Label for status field
   ///
   /// In en, this message translates to:
-  /// **'Scan'**
-  String get scanTitle;
+  /// **'Status'**
+  String get status;
 
-  /// Title for catalog screen
+  /// Label for items count
   ///
   /// In en, this message translates to:
-  /// **'Catalog'**
-  String get catalogTitle;
+  /// **'Items'**
+  String get items;
 
-  /// Hint text for search field
+  /// Error when item is locked by someone else
   ///
   /// In en, this message translates to:
-  /// **'Search by article (exact)'**
-  String get searchByArticle;
-
-  /// Tooltip for clear search button
-  ///
-  /// In en, this message translates to:
-  /// **'Clear'**
-  String get clearSearch;
-
-  /// Button to load more items
-  ///
-  /// In en, this message translates to:
-  /// **'Load more'**
-  String get loadMore;
-
-  /// Text indicating end of list
-  ///
-  /// In en, this message translates to:
-  /// **'End'**
-  String get listEnd;
-
-  /// Badge text for missing barcode
-  ///
-  /// In en, this message translates to:
-  /// **'NO BARCODE'**
-  String get noBarcode;
-
-  /// Title for notifications screen
-  ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
-  String get notificationsTitle;
-
-  /// Text when notification list is empty
-  ///
-  /// In en, this message translates to:
-  /// **'No notifications'**
-  String get noNotifications;
-
-  /// Title for products screen
-  ///
-  /// In en, this message translates to:
-  /// **'Products'**
-  String get productsTitle;
-
-  /// Placeholder text for products screen
-  ///
-  /// In en, this message translates to:
-  /// **'Products list (MVP placeholder)'**
-  String get productsPlaceholder;
-
-  /// Error when transfer line is missing
-  ///
-  /// In en, this message translates to:
-  /// **'Line not found'**
-  String get errorLineNotFound;
-
-  /// Error when line is locked by another user
-  ///
-  /// In en, this message translates to:
-  /// **'Locked by other'**
+  /// **'Locked by another user'**
   String get errorLockedByOther;
 
-  /// Error when user tries to lock multiple lines
+  /// Error when user tries to take another task
   ///
   /// In en, this message translates to:
-  /// **'Already holding another lock'**
+  /// **'You already have an active task'**
   String get errorAlreadyHoldingLock;
 
-  /// Error when lock time has passed
+  /// Error when lock time ran out
   ///
   /// In en, this message translates to:
   /// **'Lock expired'**
   String get errorLockExpired;
 
-  /// Error when operation performed without lock ownership
+  /// Error when trying to modify lock owned by others
   ///
   /// In en, this message translates to:
-  /// **'Not lock owner'**
+  /// **'You are not the owner of this lock'**
   String get errorNotLockOwner;
 
-  /// Error when trying to pick more than planned
+  /// Error when picking exceeds quantity
   ///
   /// In en, this message translates to:
-  /// **'Over-pick prevented'**
+  /// **'Cannot pick more than planned'**
   String get errorOverPick;
 
-  /// Error when trying to check more than planned
+  /// Error when checking exceeds quantity
   ///
   /// In en, this message translates to:
-  /// **'Over-check prevented'**
+  /// **'Cannot check more than planned'**
   String get errorOverCheck;
 
-  /// Validation error
+  /// Validation error for empty input
   ///
   /// In en, this message translates to:
-  /// **'Barcode is empty'**
+  /// **'Empty barcode'**
   String get valEmpty;
 
-  /// Validation error
+  /// Validation error for non-numeric input
   ///
   /// In en, this message translates to:
   /// **'Digits only (EAN-8 / EAN-13)'**
   String get valNumericOnly;
 
-  /// Validation error
+  /// Validation error for invalid checksum
   ///
   /// In en, this message translates to:
   /// **'Invalid EAN-13 checksum'**
   String get valChecksum;
 
-  /// Validation error
+  /// Validation error for invalid length
   ///
   /// In en, this message translates to:
   /// **'Only EAN-8 (8 digits) or EAN-13 (13 digits)'**
   String get valLength;
 
-  /// Transfer status New
+  /// Status label: New
   ///
   /// In en, this message translates to:
   /// **'New'**
   String get statusNew;
 
-  /// Transfer status Picking
+  /// Status label: Picking
   ///
   /// In en, this message translates to:
-  /// **'In progress'**
+  /// **'Picking'**
   String get statusPicking;
 
-  /// Transfer status Picked
+  /// Status label: Picked
   ///
   /// In en, this message translates to:
   /// **'Picked'**
   String get statusPicked;
 
-  /// Transfer status Checking
+  /// Status label: Checking
   ///
   /// In en, this message translates to:
   /// **'Checking'**
   String get statusChecking;
 
-  /// Transfer status Done
+  /// Status label: Done
   ///
   /// In en, this message translates to:
   /// **'Done'**
@@ -457,16 +433,22 @@ abstract class AppLocalizations {
   /// Button to start checking process
   ///
   /// In en, this message translates to:
-  /// **'Start checking'**
+  /// **'Start Checking'**
   String get btnStartChecking;
 
-  /// Button to finish transfer
+  /// Button to finish process
   ///
   /// In en, this message translates to:
   /// **'Finish'**
   String get btnFinish;
 
-  /// Button to acquire lock on line
+  /// Button to finish picking phase
+  ///
+  /// In en, this message translates to:
+  /// **'Finish Picking'**
+  String get btnFinishPicking;
+
+  /// Button to prepare item (lock)
   ///
   /// In en, this message translates to:
   /// **'Prepare'**
@@ -484,17 +466,35 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get btnCancel;
 
-  /// Button to perform check
+  /// Button to verify item
   ///
   /// In en, this message translates to:
   /// **'Check'**
   String get btnCheck;
 
-  /// Button to cancel check action
+  /// Button to cancel check
   ///
   /// In en, this message translates to:
-  /// **'Cancel check'**
+  /// **'Cancel Check'**
   String get btnCancelCheck;
+
+  /// Button label Save
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// Button label Delete
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// Confirmation dialog message
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this?'**
+  String get confirmDelete;
 
   /// Toast message
   ///
@@ -502,10 +502,10 @@ abstract class AppLocalizations {
   /// **'Checking started'**
   String get msgCheckingStarted;
 
-  /// Toast message
+  /// Error message when trying to finish incomplete check
   ///
   /// In en, this message translates to:
-  /// **'Finish blocked: not all checked'**
+  /// **'Cannot finish: not all items checked'**
   String get msgFinishBlocked;
 
   /// Toast message
@@ -513,18 +513,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finished'**
   String get msgFinished;
-
-  /// Toast message
-  ///
-  /// In en, this message translates to:
-  /// **'Prepared'**
-  String get msgPrepared;
-
-  /// Toast message
-  ///
-  /// In en, this message translates to:
-  /// **'Cancelled'**
-  String get msgCancelled;
 
   /// Toast message
   ///
@@ -568,23 +556,83 @@ abstract class AppLocalizations {
   /// **'Locked (check)'**
   String get subLockedCheck;
 
-  /// Label when list is empty
+  /// Title for scanner screen
   ///
   /// In en, this message translates to:
-  /// **'No lines'**
-  String get labelNoLines;
+  /// **'Scan Barcode'**
+  String get scanTitle;
 
-  /// Badge text for completed items
+  /// Title for notifications screen
   ///
   /// In en, this message translates to:
-  /// **'DONE'**
-  String get labelDoneBadge;
+  /// **'Notifications'**
+  String get notificationsTitle;
 
-  /// Title for transfer detail screen
+  /// Message when notification list is empty
   ///
   /// In en, this message translates to:
-  /// **'Transfer Details'**
-  String get transferDetails;
+  /// **'No notifications'**
+  String get noNotifications;
+
+  /// Bottom navigation label
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// Bottom navigation label
+  ///
+  /// In en, this message translates to:
+  /// **'Transfers'**
+  String get navTransfers;
+
+  /// Bottom navigation label
+  ///
+  /// In en, this message translates to:
+  /// **'Catalog'**
+  String get navCatalog;
+
+  /// Drawer header title
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get account;
+
+  /// Fallback username
+  ///
+  /// In en, this message translates to:
+  /// **'Guest'**
+  String get guest;
+
+  /// User status
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get active;
+
+  /// User status
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get inactive;
+
+  /// Language settings tile
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// Admin menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Admin: Users'**
+  String get adminUsers;
+
+  /// Admin menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Admin: Products DB'**
+  String get adminProducts;
 }
 
 class _AppLocalizationsDelegate

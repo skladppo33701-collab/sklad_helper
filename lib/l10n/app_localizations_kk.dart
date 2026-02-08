@@ -71,7 +71,25 @@ class AppLocalizationsKk extends AppLocalizations {
   String get labelCategory => 'Санат';
 
   @override
+  String get labelBrand => 'Бренд';
+
+  @override
   String get labelBarcode => 'Штрих-код';
+
+  @override
+  String get labelName => 'Атауы';
+
+  @override
+  String get catalogTitle => 'Каталог';
+
+  @override
+  String get searchByArticle => 'Атауы/артикул бойынша іздеу';
+
+  @override
+  String get loadMore => 'Тағы жүктеу';
+
+  @override
+  String get listEnd => 'Тізім соңы';
 
   @override
   String get statusBinding => 'Тіркеу...';
@@ -100,54 +118,24 @@ class AppLocalizationsKk extends AppLocalizations {
   String get barcodeUnknown => 'Белгісіз штрих-код';
 
   @override
-  String get checkingNotAllowed => 'Тексеруге тыйым салынған';
-
-  @override
-  String get checkingNotFullyPicked => 'Тауарлар толық жиналмаған';
-
-  @override
-  String checkingWrongItem(String expected, String actual) {
-    return 'Бұл тауар емес. Күтілген: $expected, Факті: $actual';
+  String wrongItem(String expected) {
+    return 'Басқа тауар. Күтілгені: $expected';
   }
 
   @override
-  String get checkingNotAllChecked => 'Барлық тауарлар тексерілмеген';
+  String get transferTitle => 'Ауыстыру';
 
   @override
-  String get scanTitle => 'Сканерлеу';
+  String get transferNotFound => 'Ауыстыру табылмады';
 
   @override
-  String get catalogTitle => 'Каталог';
+  String get listEmpty => 'Тізім бос';
 
   @override
-  String get searchByArticle => 'Артикул бойынша іздеу';
+  String get status => 'Күйі';
 
   @override
-  String get clearSearch => 'Тазалау';
-
-  @override
-  String get loadMore => 'Көбірек жүктеу';
-
-  @override
-  String get listEnd => 'Тізім соңы';
-
-  @override
-  String get noBarcode => 'ШТРИХ-КОДСЫЗ';
-
-  @override
-  String get notificationsTitle => 'Хабарламалар';
-
-  @override
-  String get noNotifications => 'Хабарламалар жоқ';
-
-  @override
-  String get productsTitle => 'Тауарлар';
-
-  @override
-  String get productsPlaceholder => 'Тауарлар тізімі (әзірленуде)';
-
-  @override
-  String get errorLineNotFound => 'Жол табылмады';
+  String get items => 'Позициялар';
 
   @override
   String get errorLockedByOther => 'Басқа пайдаланушы құлыптаған';
@@ -201,6 +189,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get btnFinish => 'Аяқтау';
 
   @override
+  String get btnFinishPicking => 'Жинауды аяқтау';
+
+  @override
   String get btnPrepare => 'Дайындау';
 
   @override
@@ -213,7 +204,16 @@ class AppLocalizationsKk extends AppLocalizations {
   String get btnCheck => 'Тексеру';
 
   @override
-  String get btnCancelCheck => 'Текс. болдырмау';
+  String get btnCancelCheck => 'Тексер. болд.';
+
+  @override
+  String get save => 'Сақтау';
+
+  @override
+  String get delete => 'Жою';
+
+  @override
+  String get confirmDelete => 'Жоюды растайсыз ба?';
 
   @override
   String get msgCheckingStarted => 'Тексеру басталды';
@@ -225,13 +225,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get msgFinished => 'Аяқталды';
 
   @override
-  String get msgPrepared => 'Дайындалды';
-
-  @override
-  String get msgCancelled => 'Болдырылмады';
-
-  @override
-  String get msgOk => 'ОК';
+  String get msgOk => 'OK';
 
   @override
   String get msgChecked => 'Тексерілді +1';
@@ -250,17 +244,47 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
-  String get subLockedPick => 'Блок (жинау)';
+  String get subLockedPick => 'Құлыпталды (жинау)';
 
   @override
-  String get subLockedCheck => 'Блок (тексеру)';
+  String get subLockedCheck => 'Құлыпталды (тексеру)';
 
   @override
-  String get labelNoLines => 'Жолдар жоқ';
+  String get scanTitle => 'Штрих-кодты сканерлеу';
 
   @override
-  String get labelDoneBadge => 'ДАЙЫН';
+  String get notificationsTitle => 'Хабарламалар';
 
   @override
-  String get transferDetails => 'Ауыстыру мәліметтері';
+  String get noNotifications => 'Хабарламалар жоқ';
+
+  @override
+  String get navHome => 'Басты';
+
+  @override
+  String get navTransfers => 'Ауыстырулар';
+
+  @override
+  String get navCatalog => 'Каталог';
+
+  @override
+  String get account => 'Аккаунт';
+
+  @override
+  String get guest => 'Қонақ';
+
+  @override
+  String get active => 'Белсенді';
+
+  @override
+  String get inactive => 'Белсенді емес';
+
+  @override
+  String get language => 'Тіл';
+
+  @override
+  String get adminUsers => 'Админ: Пайдаланушылар';
+
+  @override
+  String get adminProducts => 'Админ: Тауарлар базасы';
 }
