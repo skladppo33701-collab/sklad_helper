@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+// Импорт локализации
+import '../../l10n/app_localizations.dart';
 
 class BarcodeScannerScreen extends StatefulWidget {
   const BarcodeScannerScreen({super.key});
@@ -13,9 +15,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Получаем l10n
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan'), // TODO(l10n)
+        title: Text(l10n.scanTitle), // ИСПРАВЛЕНО
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),

@@ -1,1 +1,37 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"skladhelper","appId":"1:400881331308:android:359884a38cb7c85570fc49","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"skladhelper","configurations":{"android":"1:400881331308:android:359884a38cb7c85570fc49","ios":"1:400881331308:ios:f3c5399b1061a08a70fc49","web":"1:400881331308:web:61d32c13d81e219b70fc49"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "skladhelper",
+          "appId": "1:400881331308:android:359884a38cb7c85570fc49",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "skladhelper",
+          "configurations": {
+            "android": "1:400881331308:android:359884a38cb7c85570fc49",
+            "ios": "1:400881331308:ios:f3c5399b1061a08a70fc49",
+            "web": "1:400881331308:web:61d32c13d81e219b70fc49"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

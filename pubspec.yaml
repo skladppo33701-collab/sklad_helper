@@ -57,6 +57,12 @@ dependencies:
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.3.2
   mobile_scanner: ^5.2.3
+  firebase_messaging: ^15.2.10
+  file_picker: ^10.3.10
+  excel: ^4.0.6
+  desktop_drop: ^0.7.0
+  cross_file: ^0.3.5+2
+  spreadsheet_decoder: ^2.3.0
 
 dev_dependencies:
   flutter_test:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/product.dart';
+import '../../l10n/app_localizations.dart'; // <--- Импорт
 import 'catalog_providers.dart';
 
 class CatalogScreen extends ConsumerStatefulWidget {
@@ -15,14 +16,12 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   final _search = TextEditingController();
   Product? _searchResult;
   bool _searching = false;
-
   bool _hasActiveSearch = false;
 
   @override
   void initState() {
     super.initState();
     _hasActiveSearch = _search.text.trim().isNotEmpty;
-
     _search.addListener(() {
       final next = _search.text.trim().isNotEmpty;
       if (next == _hasActiveSearch) return;
@@ -42,12 +41,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
       setState(() => _searchResult = null);
       return;
     }
-
     setState(() {
       _searching = true;
       _searchResult = null;
     });
-
     try {
       final p = await ref
           .read(catalogControllerProvider.notifier)
@@ -55,9 +52,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
       if (!mounted) return;
       setState(() => _searchResult = p);
     } finally {
-      if (mounted) {
-        setState(() => _searching = false);
-      }
+      if (mounted) setState(() => _searching = false);
     }
   }
 
@@ -65,9 +60,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   Widget build(BuildContext context) {
     final catalogAsync = ref.watch(catalogControllerProvider);
     final controller = ref.read(catalogControllerProvider.notifier);
+    final l10n = AppLocalizations.of(context); // <--- Получаем l10n
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Catalog')), // TODO(l10n)
+      appBar: AppBar(title: Text(l10n.catalogTitle)), // ИСПРАВЛЕНО
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -76,7 +72,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
               TextField(
                 controller: _search,
                 decoration: InputDecoration(
-                  labelText: 'Search by article (exact)', // TODO(l10n)
+                  labelText: l10n.searchByArticle, // ИСПРАВЛЕНО
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: IconButton(
                     onPressed: () {
@@ -84,7 +80,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                       setState(() => _searchResult = null);
                     },
                     icon: const Icon(Icons.clear),
-                    tooltip: 'Clear', // TODO(l10n)
+                    tooltip: l10n.clearSearch, // ИСПРАВЛЕНО
                   ),
                 ),
                 textInputAction: TextInputAction.search,
@@ -94,14 +90,19 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
               if (_searching) const LinearProgressIndicator(),
               Expanded(
                 child: _hasActiveSearch
-                    ? _buildSearchResult(context)
+                    ? _buildSearchResult(context, l10n)
                     : catalogAsync.when(
-                        data: (items) =>
-                            _buildList(context, items, controller.hasMore),
+                        data: (items) => _buildList(
+                          context,
+                          items,
+                          controller.hasMore,
+                          l10n,
+                        ),
                         loading: () =>
                             const Center(child: CircularProgressIndicator()),
-                        error: (e, _) =>
-                            Center(child: Text('Error: $e')), // TODO(l10n)
+                        error: (e, _) => Center(
+                          child: Text(l10n.errorGeneric(e.toString())),
+                        ), // ИСПРАВЛЕНО
                       ),
               ),
             ],
@@ -111,25 +112,31 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
     );
   }
 
-  Widget _buildSearchResult(BuildContext context) {
+  Widget _buildSearchResult(BuildContext context, AppLocalizations l10n) {
     if (_searching) return const SizedBox.shrink();
-
     final p = _searchResult;
     if (p == null) {
-      return const Center(child: Text('Not found')); // TODO(l10n)
+      return Center(
+        child: Text(l10n.productNotFound('')),
+      ); // Используем готовое
     }
-
     return ListView(
       children: [
         _ProductTile(
           product: p,
           onTap: () => context.push('/product/${p.article}'),
+          l10n: l10n,
         ),
       ],
     );
   }
 
-  Widget _buildList(BuildContext context, List<Product> items, bool hasMore) {
+  Widget _buildList(
+    BuildContext context,
+    List<Product> items,
+    bool hasMore,
+    AppLocalizations l10n,
+  ) {
     return RefreshIndicator(
       onRefresh: () =>
           ref.read(catalogControllerProvider.notifier).refreshFirstPage(),
@@ -146,17 +153,17 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                         onPressed: () => ref
                             .read(catalogControllerProvider.notifier)
                             .loadMore(),
-                        child: const Text('Load more'), // TODO(l10n)
+                        child: Text(l10n.loadMore), // ИСПРАВЛЕНО
                       )
-                    : const Text('End'), // TODO(l10n)
+                    : Text(l10n.listEnd), // ИСПРАВЛЕНО
               ),
             );
           }
-
           final p = items[i];
           return _ProductTile(
             product: p,
             onTap: () => context.push('/product/${p.article}'),
+            l10n: l10n,
           );
         },
       ),
@@ -165,19 +172,23 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
 }
 
 class _ProductTile extends StatelessWidget {
-  const _ProductTile({required this.product, required this.onTap});
+  const _ProductTile({
+    required this.product,
+    required this.onTap,
+    required this.l10n,
+  });
 
   final Product product;
   final VoidCallback onTap;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
     final hasBarcode = (product.barcode != null && product.barcode!.isNotEmpty);
-
     final badge = hasBarcode
         ? _Badge(text: product.barcode!, icon: Icons.check_circle_outline)
-        : const _Badge(
-            text: 'NO BARCODE', // TODO(l10n)
+        : _Badge(
+            text: l10n.noBarcode, // ИСПРАВЛЕНО
             icon: Icons.qr_code_2_outlined,
           );
 
